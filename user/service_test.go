@@ -28,35 +28,55 @@ func TestService_Register(t *testing.T) {
 
 	service := NewService(repo)
 
-	type fields struct {
-		userRepo UserRepository
+	user := &domain.User{
+		Login:    "test",
+		Password: "test",
 	}
-	type args struct {
-		ctx  context.Context
-		user domain.User
+
+	id, err := repo.Store(ctx, *user)
+	assert.NoError(t, err)
+	assert.NotZero(t, id)
+
+	type wantResult struct {
+		err error
 	}
+
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
+		name       string
+		user       domain.User
+		wantErr    bool
+		wantResult wantResult
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "login busy",
+			user:    *user,
+			wantErr: true,
+			wantResult: wantResult{
+				err: domain.ErrLoginExist,
+			},
+		},
+		{
+			name: "correct",
+			user: domain.User{
+				Login:    "test1",
+				Password: "test1",
+			},
+			wantErr: false,
+			wantResult: wantResult{
+				err: nil,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			u := &Service{
-				userRepo: tt.fields.userRepo,
-			}
-			got, err := u.Register(tt.args.ctx, tt.args.user)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Register() error = %v, wantErr %v", err, tt.wantErr)
+			got, err := service.Register(ctx, tt.user)
+			if tt.wantErr {
+				assert.Equal(t, tt.wantResult.err, err)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("Register() got = %v, want %v", got, tt.want)
-			}
+
+			assert.NoError(t, err)
+			assert.NotEmpty(t, got)
 		})
 	}
 }

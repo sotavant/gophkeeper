@@ -10,7 +10,7 @@ import (
 const TestUsersTable = "testUsers"
 
 func InitConnection(ctx context.Context) (*pgxpool.Pool, error) {
-	dns := os.Getenv("DATABASE_DSN_TEST")
+	dns := os.Getenv("TEST_DATABASE_DSN")
 	if dns == "" {
 		return nil, nil
 	}

@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,6 +24,8 @@ func NewUserServer(s *user.Service) *UserServer {
 	}
 }
 
+// @todo
+// test bind
 func (u *UserServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	ur := &userRequest{}
 	if err := ur.Bind(req); err != nil {
@@ -30,6 +33,14 @@ func (u *UserServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb
 	}
 
 	token, err := u.Service.Register(ctx, ur.User)
+	if err != nil {
+		return nil, getError(err)
+	}
+
+	return &pb.RegisterResponse{
+		Token: token,
+		Error: "",
+	}, nil
 }
 
 type userRequest struct {
