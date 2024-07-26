@@ -10,6 +10,8 @@ import (
 
 func getError(err error) error {
 	switch {
+	case errors.Is(err, domain.ErrUserNotFound):
+		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, domain.ErrInternalServerError):
 		return status.Error(codes.Internal, err.Error())
 	case errors.Is(err, domain.ErrLoginExist):

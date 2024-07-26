@@ -22,4 +22,5 @@ message RegisterResponse {
 
 service UserService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(RegisterRequest) returns (RegisterResponse);
 }

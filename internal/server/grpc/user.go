@@ -24,8 +24,6 @@ func NewUserServer(s *user.Service) *UserServer {
 	}
 }
 
-// @todo
-// test bind
 func (u *UserServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	ur := &userRequest{}
 	if err := ur.Bind(req); err != nil {
@@ -33,6 +31,23 @@ func (u *UserServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb
 	}
 
 	token, err := u.Service.Register(ctx, ur.User)
+	if err != nil {
+		return nil, getError(err)
+	}
+
+	return &pb.RegisterResponse{
+		Token: token,
+		Error: "",
+	}, nil
+}
+
+func (u *UserServer) Login(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+	ur := &userRequest{}
+	if err := ur.Bind(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	token, err := u.Service.Login(ctx, ur.User)
 	if err != nil {
 		return nil, getError(err)
 	}

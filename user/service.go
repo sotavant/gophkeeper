@@ -60,6 +60,36 @@ func (u *Service) Register(ctx context.Context, user domain.User) (string, error
 	return token, nil
 }
 
+func (u *Service) Login(ctx context.Context, user domain.User) (string, error) {
+	dbUser, err := u.userRepo.GetByLogin(ctx, user.Login)
+	if err != nil {
+		internal.Logger.Infow("error in get by login", "err", err)
+		return "", domain.ErrInternalServerError
+	}
+
+	if dbUser.ID == 0 {
+		return "", domain.ErrUserNotFound
+	}
+
+	passwordCorrect, err := checkPassword(user.Password, dbUser.Password)
+	if err != nil {
+		internal.Logger.Infow("error in check passwd", "err", err)
+		return "", domain.ErrInternalServerError
+	}
+
+	if !passwordCorrect {
+		return "", domain.ErrUserNotFound
+	}
+
+	token, err := auth.BuildJWTString(dbUser.ID)
+	if err != nil {
+		internal.Logger.Infow("error generation token", "err", err)
+		return "", domain.ErrInternalServerError
+	}
+
+	return token, nil
+}
+
 func hashPassword(password string) (string, error) {
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
