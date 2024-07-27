@@ -3,6 +3,7 @@ syntax = "proto3";
 package gophkeeper;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
 
 option go_package = "gophkeeper/proto";
 

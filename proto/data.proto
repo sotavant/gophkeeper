@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package gophkeeper;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "gophkeeper/proto";
+
+message Data {
+  int64 Id = 1;
+  string Name = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 255];
+  string Login = 3;
+  string Pass = 4;
+  string Text = 5;
+  string CardNum = 6;
+  string Meta = 7;
+  string FileName = 8;
+  bytes FileChunk = 9;
+  int64 Version = 10;
+}
+
+message DataList {
+  int64 Id = 1;
+  string Name = 2;
+}
+
+message SaveDataRequest {
+  Data Data = 1;
+}
+
+message GetDataRequest {
+  int64 Id = 1 [(buf.validate.field).int64.gt = 0];
+}
+
+message DeleteDataRequest {
+  int64 Id = 1;
+}
+
+message GetDataResponse {
+  Data Data = 1;
+  string error = 2;
+}
+
+message SaveDataResponse {
+  int64 DataId = 1;
+  string error = 2;
+}
+
+message DataListResponse {
+  repeated DataList DataList = 1;
+}
+
+message DeleteDataResponse {
+  string error = 1;
+}
+
+service DataService {
+  rpc SaveData(SaveDataRequest) returns (SaveDataResponse);
+  rpc GetDataList(google.protobuf.Empty) returns (DataListResponse);
+  rpc GetData(GetDataRequest) returns (GetDataResponse);
+  rpc DeleteData(DeleteDataRequest) returns (DeleteDataResponse);
+}

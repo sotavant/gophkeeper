@@ -1,7 +1,8 @@
-package server
+package main
 
 import (
 	"context"
+	"gophkeeper/data"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server"
 	grpc2 "gophkeeper/internal/server/grpc"
@@ -64,9 +65,16 @@ func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 		panic(err)
 	}
 
+	dataRepo, err := pgsql.NewDataRepository(ctx, app.DBPool, pgsql.UsersTableName)
+	if err != nil {
+		panic(err)
+	}
+
 	userService := user.NewService(userRepo)
+	dataService := data.NewService(dataRepo)
 
 	pb.RegisterUserServiceServer(s, grpc2.NewUserServer(userService))
+	pb.RegisterDataServiceServer(s, grpc2.NewDataServer(dataService))
 
 	return s
 }

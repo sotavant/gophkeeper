@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+package gophkeeper;
+
+option go_package = "gophkeeper/proto";
+
+message TestResponse {
+  string error = 1;
+}
+
+service TestService {
+  rpc Test(google.protobuf.Empty) returns (TestResponse);
+}
+
+
+
