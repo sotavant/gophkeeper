@@ -34,13 +34,15 @@ func createDataTable(ctx context.Context, pool *pgxpool.Pool, tableName string) 
 			uid      integer not null
         		constraint user___fk
             		references users,
+			file   integer not null
+			    constraint user___fk_file
+			    references file,
     		login    varchar,
     		pass     varchar,
     		text     text,
-    		file     varchar,
     		card_num varchar,
     		meta     varchar,
-    		version integer not null,
+    		version integer not null
 		);`, "#T#", tableName)
 
 	_, err := pool.Exec(ctx, query)

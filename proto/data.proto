@@ -37,6 +37,13 @@ message DeleteDataRequest {
   int64 Id = 1;
 }
 
+message UploadFileRequest {
+  int64 DataId = 1;
+  int64 FileId = 2;
+  string FileName = 3;
+  bytes FileChunk = 4;
+}
+
 message GetDataResponse {
   Data Data = 1;
   string error = 2;
@@ -55,9 +62,15 @@ message DeleteDataResponse {
   string error = 1;
 }
 
+message FileUploadResponse {
+  string FileId = 1;
+  uint32 Size = 2;
+}
+
 service DataService {
   rpc SaveData(SaveDataRequest) returns (SaveDataResponse);
   rpc GetDataList(google.protobuf.Empty) returns (DataListResponse);
   rpc GetData(GetDataRequest) returns (GetDataResponse);
   rpc DeleteData(DeleteDataRequest) returns (DeleteDataResponse);
+  rpc UploadFile(stream UploadFileRequest) returns (FileUploadResponse);
 }

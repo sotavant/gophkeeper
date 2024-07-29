@@ -8,8 +8,11 @@ protoc --go_out=proto --go_opt=paths=source_relative --go-grpc_out=proto --go-gr
 # files
 https://dev.to/dimk00z/grpc-file-transfer-with-go-1nb2
 
-# questions
+# cli
+cobra/bubble tea
 
-1. Шифрование
-2. Клиент и Сервер в одном репозитории
-3. tls, зашивать сертификат в репозиторий? (https://dev.to/techschoolguru/how-to-secure-grpc-connection-with-ssl-tls-in-go-4ph)
+# questions
+1. Шифрование: на клиенте
+2. Клиент и Сервер в одном репозитории: да 
+3. tls, зашивать сертификат в репозиторий? (https://dev.to/techschoolguru/how-to-secure-grpc-connection-with-ssl-tls-in-go-4ph): да
+4. Авторизация, токен в cli: см. раздел "cli"

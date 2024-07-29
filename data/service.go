@@ -1,5 +1,10 @@
 package data
 
+import (
+	"context"
+	"gophkeeper/domain"
+)
+
 type Service struct {
 	dataRepo DataRepository
 }
@@ -7,8 +12,12 @@ type Service struct {
 type DataRepository interface {
 }
 
-func NewService(u DataRepository) Service {
+func NewService(d DataRepository) Service {
 	return Service{
-		dataRepo: u,
+		dataRepo: d,
 	}
+}
+
+func (s Service) UpsertData(ctx context.Context, data domain.Data) (int64, error) {
+	return 0, nil
 }
