@@ -6,6 +6,7 @@ import (
 	"gophkeeper/domain"
 	"gophkeeper/internal"
 	pb "gophkeeper/proto"
+	"gophkeeper/user"
 
 	"github.com/bufbuild/protovalidate-go"
 )
@@ -25,6 +26,11 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 	ur := &dataRequest{}
 	if err := ur.Bind(req); err != nil {
 		return nil, getError(err)
+	}
+
+	ur.Data.UID = ctx.Value(user.ContextUserIDKey{}).(int64)
+	if ur.Data.UID == 0 {
+		return nil, getError(domain.ErrUserIDAbsent)
 	}
 
 	id, err := s.Service.UpsertData(ctx, ur.Data)

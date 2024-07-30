@@ -25,7 +25,7 @@ func TestService_Register(t *testing.T) {
 		assert.NoError(t, err)
 	}(ctx, pool)
 
-	repo, err := pgsql.NewUserRepository(ctx, pool, test.TestUsersTable)
+	repo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
 	assert.NoError(t, err)
 
 	service := NewService(repo)
@@ -96,7 +96,7 @@ func TestService_Auth(t *testing.T) {
 		assert.NoError(t, err)
 	}(ctx, pool)
 
-	repo, err := pgsql.NewUserRepository(ctx, pool, test.TestUsersTable)
+	repo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
 	assert.NoError(t, err)
 
 	service := NewService(repo)

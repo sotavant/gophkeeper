@@ -38,10 +38,11 @@ message DeleteDataRequest {
 }
 
 message UploadFileRequest {
-  int64 DataId = 1;
+  int64 DataId = 1 [(buf.validate.field).int64.gt = 0];
   int64 FileId = 2;
-  string FileName = 3;
-  bytes FileChunk = 4;
+  int64 DataVersion = 3 [(buf.validate.field).int64.gt = 0];;
+  string FileName = 4 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 255];
+  bytes FileChunk = 5;
 }
 
 message GetDataResponse {
@@ -51,7 +52,8 @@ message GetDataResponse {
 
 message SaveDataResponse {
   int64 DataId = 1;
-  string error = 2;
+  int64 DataVersion = 2;
+  string error = 3;
 }
 
 message DataListResponse {
@@ -64,7 +66,8 @@ message DeleteDataResponse {
 
 message FileUploadResponse {
   string FileId = 1;
-  uint32 Size = 2;
+  int64 DataVersion = 2;
+  uint32 Size = 3;
 }
 
 service DataService {

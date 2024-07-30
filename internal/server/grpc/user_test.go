@@ -29,7 +29,7 @@ func TestUserServer_Register(t *testing.T) {
 		assert.NoError(t, err)
 	}(ctx, pool)
 
-	repo, err := pgsql.NewUserRepository(ctx, pool, test.TestUsersTable)
+	repo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
 	assert.NoError(t, err)
 
 	server := NewUserServer(user.NewService(repo))
@@ -131,7 +131,7 @@ func TestUserServer_Login(t *testing.T) {
 		assert.NoError(t, err)
 	}(ctx, pool)
 
-	repo, err := pgsql.NewUserRepository(ctx, pool, test.TestUsersTable)
+	repo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
 	assert.NoError(t, err)
 
 	service := user.NewService(repo)

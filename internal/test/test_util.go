@@ -7,7 +7,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const TestUsersTable = "testUsers"
+const UsersTestTable = "testUsers"
+const DataTestTable = "testData"
 
 func InitConnection(ctx context.Context) (*pgxpool.Pool, error) {
 	dns := os.Getenv("TEST_DATABASE_DSN")
@@ -30,9 +31,9 @@ func InitConnection(ctx context.Context) (*pgxpool.Pool, error) {
 }
 
 func CleanData(ctx context.Context, pool *pgxpool.Pool) error {
-	query := `drop table if exists ` + TestUsersTable + `;`
+	query := `drop table if exists $1, $2;`
 
-	_, err := pool.Exec(ctx, query)
+	_, err := pool.Exec(ctx, query, UsersTestTable, DataTestTable)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"context"
+	"gophkeeper/domain"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,6 +25,42 @@ func NewDataRepository(ctx context.Context, pool *pgxpool.Pool, tableName string
 		DBPoll:    pool,
 		tableName: tableName,
 	}, nil
+}
+
+func (d *DataRepository) Insert(ctx context.Context, data *domain.Data) error {
+	query := d.setTableName(`insert into #T# (name, uid, login, pass, text, card_num, meta, version) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`)
+
+	err := d.DBPoll.QueryRow(ctx, query, data.Name, data.UID, data.Login, data.Pass, data.CardNum, data.Meta, data.Version).Scan(&data.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *DataRepository) Update(ctx context.Context, data domain.Data) error {
+	query := d.setTableName(`update #T# set
+		name = $1, 
+		login = $2,
+		pass = $3,
+		text = $4,
+		card_num = $5,
+		meta = $6,
+		version = $7
+		where id = $8
+	`)
+
+	_, err := d.DBPoll.Exec(ctx, query, data.Name, data.Login, data.Pass, data.Text, data.CardNum, data.Meta, data.Version, data.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *DataRepository) setTableName(query string) string {
+	return strings.ReplaceAll(query, "#T#", d.tableName)
 }
 
 func createDataTable(ctx context.Context, pool *pgxpool.Pool, tableName string) error {
