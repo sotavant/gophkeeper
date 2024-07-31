@@ -59,6 +59,11 @@ func (d *DataRepository) Update(ctx context.Context, data domain.Data) error {
 	return nil
 }
 
+func (d *DataRepository) GetVersion(ctx context.Context, id int64) (int64, error) {
+
+	return 0, nil
+}
+
 func (d *DataRepository) setTableName(query string) string {
 	return strings.ReplaceAll(query, "#T#", d.tableName)
 }

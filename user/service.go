@@ -14,15 +14,15 @@ import (
 type ContextUserIDKey struct{}
 
 type Service struct {
-	userRepo UserRepository
+	userRepo Repository
 }
 
-type UserRepository interface {
+type Repository interface {
 	GetByLogin(ctx context.Context, login string) (domain.User, error)
 	Store(ctx context.Context, user domain.User) (int64, error)
 }
 
-func NewService(u UserRepository) *Service {
+func NewService(u Repository) *Service {
 	return &Service{
 		userRepo: u,
 	}

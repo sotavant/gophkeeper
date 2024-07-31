@@ -6,17 +6,17 @@ import (
 )
 
 type Service struct {
-	dataRepo DataRepository
+	dataRepo Repository
 }
 
-type DataRepository interface {
+type Repository interface {
 	Insert(ctx context.Context, data *domain.Data) error
 	Update(ctx context.Context, data domain.Data) error
 	GetVersion(ctx context.Context, id int64) (int64, error)
 }
 
-func NewService(d DataRepository) Service {
-	return Service{
+func NewService(d Repository) *Service {
+	return &Service{
 		dataRepo: d,
 	}
 }
