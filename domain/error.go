@@ -12,4 +12,6 @@ var (
 	ErrDataOutdated        = errors.New("data outdated")
 	ErrDataInsert          = errors.New("data insert error")
 	ErrDataUpdate          = errors.New("data update error")
+	ErrCheckDataName       = errors.New("error in check data name")
+	ErrDataNameNotUniq     = errors.New("data name not uniq")
 )

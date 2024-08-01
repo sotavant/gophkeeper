@@ -33,13 +33,13 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 		return nil, getError(domain.ErrUserIDAbsent)
 	}
 
-	id, err := s.Service.UpsertData(ctx, ur.Data)
+	err := s.Service.UpsertData(ctx, &ur.Data)
 	if err != nil {
 		return nil, getError(err)
 	}
 
 	return &pb.SaveDataResponse{
-		DataId: id,
+		DataId: ur.ID,
 	}, nil
 }
 

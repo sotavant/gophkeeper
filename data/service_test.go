@@ -25,14 +25,47 @@ func TestService_UpsertData(t *testing.T) {
 		assert.NoError(t, err)
 	}(ctx, pool)
 
+	userRepo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
+	assert.NoError(t, err)
+
+	user := &domain.User{
+		Login:    "test",
+		Password: "test",
+	}
+
+	userId, err := userRepo.Store(ctx, *user)
+	assert.NoError(t, err)
+	assert.NotZero(t, userId)
+
 	repo, err := pgsql.NewDataRepository(ctx, pool, test.DataTestTable)
+	assert.NoError(t, err)
+
+	testData := &domain.Data{
+		Name:    "testic",
+		Login:   "test",
+		Pass:    "test",
+		Version: 1,
+		UID:     userId,
+	}
+
+	testData2 := &domain.Data{
+		Name:    "testic2",
+		Login:   "test",
+		Pass:    "test",
+		Version: 1,
+		UID:     userId,
+	}
+
+	err = repo.Insert(ctx, testData)
+	assert.NoError(t, err)
+
+	err = repo.Insert(ctx, testData2)
 	assert.NoError(t, err)
 
 	service := NewService(repo)
 
 	type want struct {
-		wantErr bool
-		errCode int
+		err error
 	}
 
 	tests := []struct {
@@ -41,22 +74,56 @@ func TestService_UpsertData(t *testing.T) {
 		want want
 	}{
 		{
-			name: "new data", // need check id and version
+			name: "success new data", // need check userId and version
+			data: domain.Data{
+				Login:   "test",
+				Pass:    "test",
+				CardNum: "test",
+				Text:    "test",
+				Name:    "test",
+				Meta:    "test",
+				UID:     userId,
+			},
+			want: want{
+				err: nil,
+			},
 		},
 		{
-			name: "new data with absent uid", // need check id and version
+			name: "name exist", // need check userId and version
+			data: domain.Data{
+				Login:   "test",
+				Pass:    "test",
+				CardNum: "test",
+				Text:    "test",
+				Name:    testData.Name,
+				Meta:    "test",
+				UID:     userId,
+			},
+			want: want{
+				err: domain.ErrDataNameNotUniq,
+			},
 		},
 		{
-			name: "new data with bad uid", // need check id and version
+			name: "success update",
+			data: domain.Data{
+				ID:      testData.ID,
+				Text:    "success update",
+				Version: testData.Version,
+			},
+			want: want{
+				err: nil,
+			},
 		},
 		{
-			name: "success update data", // with same version
-		},
-		{
-			name: "update data with outdated version", // with same version
-		},
-		{
-			name: "update data with absent version", // with same version
+			name: "wrong update: name exist",
+			data: domain.Data{
+				ID:      testData.ID,
+				Name:    testData2.Name,
+				Version: testData2.Version,
+			},
+			want: want{
+				err: nil,
+			},
 		},
 	}
 	for _, tt := range tests {
