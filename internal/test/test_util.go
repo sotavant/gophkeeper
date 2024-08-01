@@ -2,13 +2,16 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const UsersTestTable = "testUsers"
-const DataTestTable = "testData"
+const UsersTestTable = "test_users"
+const DataTestTable = "test_data"
+const FileTestTable = "test_file"
 
 func InitConnection(ctx context.Context) (*pgxpool.Pool, error) {
 	dns := os.Getenv("TEST_DATABASE_DSN")
@@ -30,10 +33,11 @@ func InitConnection(ctx context.Context) (*pgxpool.Pool, error) {
 	return dbConn, nil
 }
 
-func CleanData(ctx context.Context, pool *pgxpool.Pool) error {
-	query := `drop table if exists $1, $2;`
+func CleanData(ctx context.Context, pool *pgxpool.Pool, tables []string) error {
+	tt := strings.Join(tables, ",")
+	query := fmt.Sprintf(`drop table if exists %s;`, tt)
 
-	_, err := pool.Exec(ctx, query, UsersTestTable, DataTestTable)
+	_, err := pool.Exec(ctx, query)
 	if err != nil {
 		return err
 	}

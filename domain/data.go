@@ -4,11 +4,11 @@ type Data struct {
 	Login,
 	Pass,
 	CardNum,
-	FileId,
 	Text,
 	Name,
 	Meta string
+	File,
 	ID,
 	Version,
-	UID int64
+	UID *int64
 }

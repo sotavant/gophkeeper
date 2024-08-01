@@ -3,9 +3,10 @@ package pgsql
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	"gophkeeper/domain"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -13,26 +14,28 @@ import (
 const DataTableName = "data"
 
 type DataRepository struct {
-	DBPoll    *pgxpool.Pool
-	tableName string
+	DBPoll        *pgxpool.Pool
+	tableName     string
+	fileTableName string
 }
 
-func NewDataRepository(ctx context.Context, pool *pgxpool.Pool, tableName string) (*DataRepository, error) {
-	err := createDataTable(ctx, pool, tableName)
+func NewDataRepository(ctx context.Context, pool *pgxpool.Pool, tableName, fileTableName, usersTableName string) (*DataRepository, error) {
+	err := createDataTable(ctx, pool, tableName, usersTableName, fileTableName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DataRepository{
-		DBPoll:    pool,
-		tableName: tableName,
+		DBPoll:        pool,
+		tableName:     tableName,
+		fileTableName: fileTableName,
 	}, nil
 }
 
 func (d *DataRepository) Insert(ctx context.Context, data *domain.Data) error {
 	query := d.setTableName(`insert into #T# (name, uid, login, pass, text, card_num, meta, version) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`)
 
-	err := d.DBPoll.QueryRow(ctx, query, data.Name, data.UID, data.Login, data.Pass, data.CardNum, data.Meta, data.Version).Scan(&data.ID)
+	err := d.DBPoll.QueryRow(ctx, query, data.Name, data.UID, data.Login, data.Pass, data.Text, data.CardNum, data.Meta, data.Version).Scan(&data.ID)
 	if err != nil {
 		return err
 	}
@@ -62,14 +65,18 @@ func (d *DataRepository) Update(ctx context.Context, data domain.Data) error {
 }
 
 func (d *DataRepository) GetByNameAndUserID(ctx context.Context, uid int64, name string) (int64, error) {
-	query := d.setTableName(`select id from #T# where uid = $1 and name = $2`)
+	query := d.setTableName(`select * from #T# where uid = $1 and name = $2`)
 
 	data, err := d.getOne(ctx, query, uid, name)
 	if err != nil {
 		return 0, err
 	}
 
-	return data.ID, nil
+	if data.ID == nil {
+		return 0, nil
+	}
+
+	return *data.ID, nil
 }
 
 func (d *DataRepository) GetById(ctx context.Context, id int64, fields []string) (*domain.Data, error) {
@@ -110,17 +117,17 @@ func (d *DataRepository) setTableName(query string) string {
 	return strings.ReplaceAll(query, "#T#", d.tableName)
 }
 
-func createDataTable(ctx context.Context, pool *pgxpool.Pool, tableName string) error {
+func createDataTable(ctx context.Context, pool *pgxpool.Pool, tableName, usersTableName, fileTableName string) error {
 	query := strings.ReplaceAll(`create table if not exists #T#
 		(
 			id    serial primary key,
 			name varchar(255) not null,
 			uid      integer not null
         		constraint user___fk
-            		references users,
-			file   integer not null
-			    constraint user___fk_file
-			    references file,
+            		references #UT#,
+			file   integer
+			    constraint data___fk_file
+			    references #FT#,
     		login    varchar,
     		pass     varchar,
     		text     text,
@@ -129,6 +136,9 @@ func createDataTable(ctx context.Context, pool *pgxpool.Pool, tableName string) 
     		version integer not null,
     		constraint  name_unique UNIQUE (name, uid)
 		);`, "#T#", tableName)
+
+	query = strings.ReplaceAll(query, "#FT#", fileTableName)
+	query = strings.ReplaceAll(query, "#UT#", usersTableName)
 
 	_, err := pool.Exec(ctx, query)
 

@@ -65,7 +65,7 @@ func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 		panic(err)
 	}
 
-	dataRepo, err := pgsql.NewDataRepository(ctx, app.DBPool, pgsql.UsersTableName)
+	dataRepo, err := pgsql.NewDataRepository(ctx, app.DBPool, pgsql.DataTableName, pgsql.UsersTableName, pgsql.FileTableName)
 	if err != nil {
 		panic(err)
 	}

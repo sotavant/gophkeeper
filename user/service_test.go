@@ -12,6 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMain(m *testing.M) {
+	m.Run()
+
+}
+
 func TestService_Register(t *testing.T) {
 	ctx := context.Background()
 	internal.InitLogger()
@@ -21,7 +26,7 @@ func TestService_Register(t *testing.T) {
 	assert.NotNil(t, pool, "no databases init")
 
 	defer func(ctx context.Context, pool *pgxpool.Pool) {
-		err = test.CleanData(ctx, pool)
+		err = test.CleanData(ctx, pool, []string{test.UsersTestTable})
 		assert.NoError(t, err)
 	}(ctx, pool)
 
@@ -84,6 +89,7 @@ func TestService_Register(t *testing.T) {
 }
 
 func TestService_Auth(t *testing.T) {
+	tableName := "test_users_auth"
 	internal.InitLogger()
 	ctx := context.Background()
 
@@ -92,11 +98,11 @@ func TestService_Auth(t *testing.T) {
 	assert.NotNil(t, pool, "no databases init")
 
 	defer func(ctx context.Context, pool *pgxpool.Pool) {
-		err = test.CleanData(ctx, pool)
+		err = test.CleanData(ctx, pool, []string{tableName})
 		assert.NoError(t, err)
 	}(ctx, pool)
 
-	repo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
+	repo, err := pgsql.NewUserRepository(ctx, pool, tableName)
 	assert.NoError(t, err)
 
 	service := NewService(repo)

@@ -1,3 +1,5 @@
 package file
 
-func UploadFile()
+func UploadFile() {
+
+}

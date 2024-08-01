@@ -25,7 +25,7 @@ func TestUserServer_Register(t *testing.T) {
 	assert.NotNil(t, pool, "no databases init")
 
 	defer func(ctx context.Context, pool *pgxpool.Pool) {
-		err = test.CleanData(ctx, pool)
+		err = test.CleanData(ctx, pool, []string{test.UsersTestTable})
 		assert.NoError(t, err)
 	}(ctx, pool)
 
@@ -127,7 +127,7 @@ func TestUserServer_Login(t *testing.T) {
 	assert.NotNil(t, pool, "no databases init")
 
 	defer func(ctx context.Context, pool *pgxpool.Pool) {
-		err = test.CleanData(ctx, pool)
+		err = test.CleanData(ctx, pool, []string{test.UsersTestTable})
 		assert.NoError(t, err)
 	}(ctx, pool)
 

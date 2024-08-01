@@ -9,6 +9,7 @@ import (
 	"gophkeeper/user"
 
 	"github.com/bufbuild/protovalidate-go"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type DataServer struct {
@@ -16,9 +17,9 @@ type DataServer struct {
 	Service data.Service
 }
 
-func NewDataServer(s data.Service) DataServer {
-	return DataServer{
-		Service: s,
+func NewDataServer(s *data.Service) *DataServer {
+	return &DataServer{
+		Service: *s,
 	}
 }
 
@@ -28,8 +29,9 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 		return nil, getError(err)
 	}
 
-	ur.Data.UID = ctx.Value(user.ContextUserIDKey{}).(int64)
-	if ur.Data.UID == 0 {
+	ctxUID := ctx.Value(user.ContextUserIDKey{}).(int64)
+	ur.Data.UID = &ctxUID
+	if *ur.Data.UID == 0 {
 		return nil, getError(domain.ErrUserIDAbsent)
 	}
 
@@ -39,8 +41,24 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 	}
 
 	return &pb.SaveDataResponse{
-		DataId: ur.ID,
+		DataId: *ur.ID,
 	}, nil
+}
+
+func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDataResponse, error) {
+	return nil, nil
+}
+
+func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) (*pb.DeleteDataResponse, error) {
+	return nil, nil
+}
+
+func (s *DataServer) GetDataList(ctx context.Context, empty *emptypb.Empty) (*pb.DataListResponse, error) {
+	return nil, nil
+}
+
+func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
+	return nil
 }
 
 type dataRequest struct {
@@ -59,7 +77,8 @@ func (d *dataRequest) Bind(req *pb.SaveDataRequest) error {
 	}
 
 	reqData := req.GetData()
-	d.ID = reqData.GetId()
+	reqDataId := reqData.GetId()
+	d.ID = &reqDataId
 	d.Login = reqData.GetLogin()
 	d.Pass = reqData.GetPass()
 	d.Text = reqData.GetText()

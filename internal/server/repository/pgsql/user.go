@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"context"
+	"fmt"
 	"gophkeeper/domain"
 	"strings"
 
@@ -66,6 +67,7 @@ func (u *UserRepository) getOne(ctx context.Context, query string, args ...inter
 }
 
 func createUsersTable(ctx context.Context, pool *pgxpool.Pool, tableName string) error {
+	fmt.Println(tableName)
 	query := strings.ReplaceAll(`create table if not exists #T#
 		(
 			id    serial primary key,

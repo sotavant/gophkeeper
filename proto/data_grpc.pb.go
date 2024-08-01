@@ -24,6 +24,7 @@ const (
 	DataService_GetDataList_FullMethodName = "/gophkeeper.DataService/GetDataList"
 	DataService_GetData_FullMethodName     = "/gophkeeper.DataService/GetData"
 	DataService_DeleteData_FullMethodName  = "/gophkeeper.DataService/DeleteData"
+	DataService_UploadFile_FullMethodName  = "/gophkeeper.DataService/UploadFile"
 )
 
 // DataServiceClient is the client API for DataService service.
@@ -34,6 +35,7 @@ type DataServiceClient interface {
 	GetDataList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*DataListResponse, error)
 	GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error)
 	DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*DeleteDataResponse, error)
+	UploadFile(ctx context.Context, opts ...grpc.CallOption) (DataService_UploadFileClient, error)
 }
 
 type dataServiceClient struct {
@@ -84,6 +86,41 @@ func (c *dataServiceClient) DeleteData(ctx context.Context, in *DeleteDataReques
 	return out, nil
 }
 
+func (c *dataServiceClient) UploadFile(ctx context.Context, opts ...grpc.CallOption) (DataService_UploadFileClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DataService_ServiceDesc.Streams[0], DataService_UploadFile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dataServiceUploadFileClient{ClientStream: stream}
+	return x, nil
+}
+
+type DataService_UploadFileClient interface {
+	Send(*UploadFileRequest) error
+	CloseAndRecv() (*FileUploadResponse, error)
+	grpc.ClientStream
+}
+
+type dataServiceUploadFileClient struct {
+	grpc.ClientStream
+}
+
+func (x *dataServiceUploadFileClient) Send(m *UploadFileRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *dataServiceUploadFileClient) CloseAndRecv() (*FileUploadResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(FileUploadResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // DataServiceServer is the server API for DataService service.
 // All implementations must embed UnimplementedDataServiceServer
 // for forward compatibility
@@ -92,6 +129,7 @@ type DataServiceServer interface {
 	GetDataList(context.Context, *emptypb.Empty) (*DataListResponse, error)
 	GetData(context.Context, *GetDataRequest) (*GetDataResponse, error)
 	DeleteData(context.Context, *DeleteDataRequest) (*DeleteDataResponse, error)
+	UploadFile(DataService_UploadFileServer) error
 	mustEmbedUnimplementedDataServiceServer()
 }
 
@@ -110,6 +148,9 @@ func (UnimplementedDataServiceServer) GetData(context.Context, *GetDataRequest) 
 }
 func (UnimplementedDataServiceServer) DeleteData(context.Context, *DeleteDataRequest) (*DeleteDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteData not implemented")
+}
+func (UnimplementedDataServiceServer) UploadFile(DataService_UploadFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method UploadFile not implemented")
 }
 func (UnimplementedDataServiceServer) mustEmbedUnimplementedDataServiceServer() {}
 
@@ -196,6 +237,32 @@ func _DataService_DeleteData_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataService_UploadFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DataServiceServer).UploadFile(&dataServiceUploadFileServer{ServerStream: stream})
+}
+
+type DataService_UploadFileServer interface {
+	SendAndClose(*FileUploadResponse) error
+	Recv() (*UploadFileRequest, error)
+	grpc.ServerStream
+}
+
+type dataServiceUploadFileServer struct {
+	grpc.ServerStream
+}
+
+func (x *dataServiceUploadFileServer) SendAndClose(m *FileUploadResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *dataServiceUploadFileServer) Recv() (*UploadFileRequest, error) {
+	m := new(UploadFileRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // DataService_ServiceDesc is the grpc.ServiceDesc for DataService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -220,6 +287,12 @@ var DataService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DataService_DeleteData_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "UploadFile",
+			Handler:       _DataService_UploadFile_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "data.proto",
 }

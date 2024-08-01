@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/repository/pgsql"
@@ -21,7 +22,7 @@ func TestService_UpsertData(t *testing.T) {
 	assert.NotNil(t, pool, "no databases init")
 
 	defer func(ctx context.Context, pool *pgxpool.Pool) {
-		err = test.CleanData(ctx, pool)
+		err = test.CleanData(ctx, pool, []string{test.UsersTestTable, test.DataTestTable, test.FileTestTable})
 		assert.NoError(t, err)
 	}(ctx, pool)
 
@@ -37,23 +38,26 @@ func TestService_UpsertData(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotZero(t, userId)
 
-	repo, err := pgsql.NewDataRepository(ctx, pool, test.DataTestTable)
+	_, err = pgsql.NewFileRepository(ctx, pool, test.FileTestTable)
+	repo, err := pgsql.NewDataRepository(ctx, pool, test.DataTestTable, test.FileTestTable, test.UsersTestTable)
 	assert.NoError(t, err)
 
+	var versionFirst int64 = 1
+	var versionSecond int64 = 2
 	testData := &domain.Data{
 		Name:    "testic",
 		Login:   "test",
 		Pass:    "test",
-		Version: 1,
-		UID:     userId,
+		Version: &versionFirst,
+		UID:     &userId,
 	}
 
 	testData2 := &domain.Data{
 		Name:    "testic2",
 		Login:   "test",
 		Pass:    "test",
-		Version: 1,
-		UID:     userId,
+		Version: &versionSecond,
+		UID:     &userId,
 	}
 
 	err = repo.Insert(ctx, testData)
@@ -82,7 +86,7 @@ func TestService_UpsertData(t *testing.T) {
 				Text:    "test",
 				Name:    "test",
 				Meta:    "test",
-				UID:     userId,
+				UID:     &userId,
 			},
 			want: want{
 				err: nil,
@@ -97,7 +101,7 @@ func TestService_UpsertData(t *testing.T) {
 				Text:    "test",
 				Name:    testData.Name,
 				Meta:    "test",
-				UID:     userId,
+				UID:     &userId,
 			},
 			want: want{
 				err: domain.ErrDataNameNotUniq,
@@ -119,20 +123,43 @@ func TestService_UpsertData(t *testing.T) {
 			data: domain.Data{
 				ID:      testData.ID,
 				Name:    testData2.Name,
-				Version: testData2.Version,
+				Version: testData.Version,
 			},
 			want: want{
-				err: nil,
+				err: domain.ErrDataNameNotUniq,
+			},
+		},
+		{
+			name: "wrong update: version absent",
+			data: domain.Data{
+				ID:   testData.ID,
+				Name: testData.Name,
+			},
+			want: want{
+				err: domain.ErrDataVersionAbsent,
+			},
+		},
+		{
+			name: "wrong update: bad version",
+			data: domain.Data{
+				ID:      testData.ID,
+				Name:    testData.Name,
+				Version: &versionSecond,
+			},
+			want: want{
+				err: domain.ErrDataOutdated,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := Service{
-				dataRepo: tt.fields.dataRepo,
+			err = service.UpsertData(ctx, &tt.data)
+			if tt.want.err == nil {
+				assert.NoError(t, err)
 			}
-			if err := s.UpsertData(tt.args.ctx, tt.args.data); (err != nil) != tt.wantErr {
-				t.Errorf("UpsertData() error = %v, wantErr %v", err, tt.wantErr)
+
+			if !errors.Is(err, tt.want.err) {
+				t.Errorf("UpsertData() error = %v, wantErr %v", err, tt.want.err)
 			}
 		})
 	}
