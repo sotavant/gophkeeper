@@ -16,7 +16,6 @@ import (
 func TestService_UpsertData(t *testing.T) {
 	ctx := context.Background()
 	internal.InitLogger()
-
 	pool, err := test.InitConnection(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, pool, "no databases init")
@@ -38,9 +37,7 @@ func TestService_UpsertData(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotZero(t, userId)
 
-	_, err = pgsql.NewFileRepository(ctx, pool, test.FileTestTable)
-	repo, err := pgsql.NewDataRepository(ctx, pool, test.DataTestTable, test.FileTestTable, test.UsersTestTable)
-	assert.NoError(t, err)
+	service := GetTestService(ctx, t, pool)
 
 	var versionFirst int64 = 1
 	var versionSecond int64 = 2
@@ -62,13 +59,11 @@ func TestService_UpsertData(t *testing.T) {
 		UID:     userId,
 	}
 
-	err = repo.Insert(ctx, testData)
+	err = service.DataRepo.Insert(ctx, testData)
 	assert.NoError(t, err)
 
-	err = repo.Insert(ctx, testData2)
+	err = service.DataRepo.Insert(ctx, testData2)
 	assert.NoError(t, err)
-
-	service := NewService(repo)
 
 	type want struct {
 		err error
@@ -160,7 +155,7 @@ func TestService_UpsertData(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.updateVersion {
 				var dd *domain.Data
-				dd, err = repo.GetById(ctx, tt.data.ID, []string{})
+				dd, err = service.DataRepo.GetById(ctx, tt.data.ID, []string{})
 				assert.NoError(t, err)
 				tt.data.Version = dd.Version
 			}
@@ -175,4 +170,13 @@ func TestService_UpsertData(t *testing.T) {
 			}
 		})
 	}
+}
+
+func GetTestService(ctx context.Context, t *testing.T, pool *pgxpool.Pool) *Service {
+	var err error
+
+	_, err = pgsql.NewFileRepository(ctx, pool, test.FileTestTable)
+	repo, err := pgsql.NewDataRepository(ctx, pool, test.DataTestTable, test.FileTestTable, test.UsersTestTable)
+	assert.NoError(t, err)
+	return NewService(repo)
 }

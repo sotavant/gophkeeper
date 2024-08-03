@@ -8,7 +8,7 @@ import (
 )
 
 type Service struct {
-	dataRepo Repository
+	DataRepo Repository
 }
 
 type Repository interface {
@@ -20,11 +20,13 @@ type Repository interface {
 
 func NewService(d Repository) *Service {
 	return &Service{
-		dataRepo: d,
+		DataRepo: d,
 	}
 }
 
 func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
+	fmt.Println("data ID", data.ID)
+	fmt.Println("data Version", data.Version)
 	if data.ID == 0 {
 		uniq, err := s.checkName(ctx, data, nil)
 		if err != nil {
@@ -38,14 +40,14 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 
 		data.Version = getVersion()
 
-		err = s.dataRepo.Insert(ctx, data)
+		err = s.DataRepo.Insert(ctx, data)
 		if err != nil {
 			fmt.Println(data)
 			internal.Logger.Errorw("error while inserting data", "err", err)
 			return domain.ErrDataInsert
 		}
 	} else {
-		oldRow, err := s.dataRepo.GetById(ctx, data.ID, []string{})
+		oldRow, err := s.DataRepo.GetById(ctx, data.ID, []string{})
 		if err != nil {
 			internal.Logger.Errorw("error while fetching data", "id", data.ID, "err", err)
 			return domain.ErrInternalServerError
@@ -66,7 +68,7 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 			return domain.ErrDataNameNotUniq
 		}
 
-		err = s.dataRepo.Update(ctx, *data)
+		err = s.DataRepo.Update(ctx, *data)
 		if err != nil {
 			fmt.Println(data.UID, data.Name)
 			internal.Logger.Errorw("error while updating data", "id", data.ID, "err", err)
@@ -78,6 +80,7 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 }
 
 func (s Service) updateVersion(oldRow *domain.Data, newRow *domain.Data) error {
+	fmt.Println(newRow.Version)
 	if newRow.Version == 0 {
 		return domain.ErrDataVersionAbsent
 	}
@@ -101,7 +104,7 @@ func (s Service) checkName(ctx context.Context, data *domain.Data, oldData *doma
 		return
 	}
 
-	id, err = s.dataRepo.GetByNameAndUserID(ctx, data.UID, data.Name)
+	id, err = s.DataRepo.GetByNameAndUserID(ctx, data.UID, data.Name)
 	if err != nil {
 		return
 	}

@@ -84,6 +84,8 @@ func (d *dataRequest) Bind(req *pb.SaveDataRequest) error {
 	cardNum := reqData.GetCardNum()
 
 	d.ID = reqData.GetId()
+	d.Version = reqData.GetVersion()
+	d.Name = reqData.GetName()
 	d.Login = &login
 	d.Pass = &pass
 	d.Text = &text
