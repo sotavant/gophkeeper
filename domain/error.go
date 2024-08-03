@@ -14,4 +14,6 @@ var (
 	ErrDataUpdate          = errors.New("data update error")
 	ErrCheckDataName       = errors.New("error in check data name")
 	ErrDataNameNotUniq     = errors.New("data name not uniq")
+	ErrDataNotFound        = errors.New("data not found")
+	ErrBadFileID           = errors.New("bad file id")
 )

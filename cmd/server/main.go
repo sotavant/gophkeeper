@@ -65,16 +65,21 @@ func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 		panic(err)
 	}
 
+	fileRepo, err := pgsql.NewFileRepository(ctx, app.DBPool, pgsql.FileTableName)
+	if err != nil {
+		panic(err)
+	}
+
 	dataRepo, err := pgsql.NewDataRepository(ctx, app.DBPool, pgsql.DataTableName, pgsql.UsersTableName, pgsql.FileTableName)
 	if err != nil {
 		panic(err)
 	}
 
 	userService := user.NewService(userRepo)
-	dataService := data.NewService(dataRepo)
+	dataService := data.NewService(dataRepo, fileRepo)
 
 	pb.RegisterUserServiceServer(s, grpc2.NewUserServer(userService))
-	pb.RegisterDataServiceServer(s, grpc2.NewDataServer(dataService))
+	pb.RegisterDataServiceServer(s, grpc2.NewDataServer(dataService, app.FilesSavePath))
 
 	return s
 }

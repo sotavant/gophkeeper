@@ -2,7 +2,6 @@ package pgsql
 
 import (
 	"context"
-	"fmt"
 	"gophkeeper/domain"
 	"strings"
 
@@ -64,7 +63,7 @@ func (d *DataRepository) Update(ctx context.Context, data domain.Data) error {
 	return nil
 }
 
-func (d *DataRepository) GetByNameAndUserID(ctx context.Context, uid int64, name string) (int64, error) {
+func (d *DataRepository) GetByNameAndUserID(ctx context.Context, uid uint64, name string) (uint64, error) {
 	query := d.setTableName(`select * from #T# where uid = $1 and name = $2`)
 
 	data, err := d.getOne(ctx, query, uid, name)
@@ -75,13 +74,8 @@ func (d *DataRepository) GetByNameAndUserID(ctx context.Context, uid int64, name
 	return data.ID, nil
 }
 
-func (d *DataRepository) GetById(ctx context.Context, id int64, fields []string) (*domain.Data, error) {
-	selectFields := "*"
-	if len(fields) > 0 {
-		selectFields = strings.Join(fields, ",")
-	}
-
-	query := d.setTableName(fmt.Sprintf(`select %s from #T# where id = $1`, selectFields))
+func (d *DataRepository) Get(ctx context.Context, id uint64) (*domain.Data, error) {
+	query := d.setTableName(`select * from #T# where id = $1`)
 
 	row, err := d.getOne(ctx, query, id)
 	if err != nil {

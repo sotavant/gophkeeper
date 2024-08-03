@@ -12,9 +12,13 @@ func getError(err error) error {
 	switch {
 	case errors.Is(err, domain.ErrUserIDAbsent):
 		return status.Error(codes.Unauthenticated, "user id absent")
-	case errors.Is(err, domain.ErrBadData), errors.Is(err, domain.ErrDataVersionAbsent), errors.Is(err, domain.ErrDataNameNotUniq):
+	case
+		errors.Is(err, domain.ErrBadData),
+		errors.Is(err, domain.ErrDataVersionAbsent),
+		errors.Is(err, domain.ErrDataNameNotUniq),
+		errors.Is(err, domain.ErrBadFileID):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrUserNotFound):
+	case errors.Is(err, domain.ErrUserNotFound), errors.Is(err, domain.ErrDataNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	case
 		errors.Is(err, domain.ErrInternalServerError),

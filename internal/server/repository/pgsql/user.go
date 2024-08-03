@@ -36,8 +36,8 @@ func (u *UserRepository) GetByLogin(ctx context.Context, login string) (domain.U
 	return u.getOne(ctx, query, login)
 }
 
-func (u *UserRepository) Store(ctx context.Context, user domain.User) (int64, error) {
-	var id int64
+func (u *UserRepository) Store(ctx context.Context, user domain.User) (uint64, error) {
+	var id uint64
 	query := u.setUserTableName(`insert into #T# (login, password) values ($1, $2) returning id`)
 
 	err := u.DBPoll.QueryRow(ctx, query, user.Login, user.Password).Scan(&id)

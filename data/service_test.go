@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"errors"
+	"fmt"
 	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/repository/pgsql"
@@ -39,8 +40,8 @@ func TestService_UpsertData(t *testing.T) {
 
 	service := GetTestService(ctx, t, pool)
 
-	var versionFirst int64 = 1
-	var versionSecond int64 = 2
+	var versionFirst uint64 = 1
+	var versionSecond uint64 = 2
 	login := "test"
 	successTextData := "success update"
 	testData := &domain.Data{
@@ -155,7 +156,7 @@ func TestService_UpsertData(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.updateVersion {
 				var dd *domain.Data
-				dd, err = service.DataRepo.GetById(ctx, tt.data.ID, []string{})
+				dd, err = service.DataRepo.Get(ctx, tt.data.ID)
 				assert.NoError(t, err)
 				tt.data.Version = dd.Version
 			}
@@ -175,8 +176,99 @@ func TestService_UpsertData(t *testing.T) {
 func GetTestService(ctx context.Context, t *testing.T, pool *pgxpool.Pool) *Service {
 	var err error
 
-	_, err = pgsql.NewFileRepository(ctx, pool, test.FileTestTable)
+	fileRepo, err := pgsql.NewFileRepository(ctx, pool, test.FileTestTable)
 	repo, err := pgsql.NewDataRepository(ctx, pool, test.DataTestTable, test.FileTestTable, test.UsersTestTable)
 	assert.NoError(t, err)
-	return NewService(repo)
+	return NewService(repo, fileRepo)
+}
+
+func TestService_CheckUploadFileData(t *testing.T) {
+	ctx := context.Background()
+	internal.InitLogger()
+	pool, err := test.InitConnection(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, pool, "no databases init")
+
+	defer func(ctx context.Context, pool *pgxpool.Pool) {
+		err = test.CleanData(ctx, pool, []string{"c_users", "c_data", "c_files"})
+		assert.NoError(t, err)
+	}(ctx, pool)
+
+	userRepo, err := pgsql.NewUserRepository(ctx, pool, "c_users")
+	assert.NoError(t, err)
+
+	user := &domain.User{
+		Login:    "test",
+		Password: "test",
+	}
+
+	userId, err := userRepo.Store(ctx, *user)
+	assert.NoError(t, err)
+	assert.NotZero(t, userId)
+
+	type fields struct {
+		DataRepo Repository
+		FileRepo FileRepository
+	}
+	type args struct {
+		ctx  context.Context
+		data domain.Data
+	}
+	tests := []struct {
+		name    string
+		insertData    domain.Data
+		newData       domain.Data
+		file domain.File
+		wantErr error
+	}{
+		{
+			name: "wrong data.id",
+			insertData: domain.Data{
+				Name:    "1",
+				Version: 1,
+				UID:     userId,
+				FileID:  nil,
+			},
+			newData: domain.Data{
+
+			}
+			file: domain.File{
+
+			}
+			wantErr: domain.ErrDataNotFound,
+		},
+		{
+			name: "bad uid",
+			wantErr: domain.ErrDataNotFound,
+		},
+		{
+			name: "empty fileId",
+			wantErr: nil,
+		},
+		{
+			name: "empty data.fileId",
+			wantErr: nil,
+		},
+		{
+			name: "not equal data.fileId and db.dataId",
+			wantErr: domain.ErrBadFileID,
+		},
+		{
+			name: "bd.fileId is null, data.fileId not null",
+			wantErr: domain.ErrBadFileID,
+		},
+		{
+			name: "bd.fileId not null, data.fileId not null",
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Service{
+				DataRepo: tt.fields.DataRepo,
+				FileRepo: tt.fields.FileRepo,
+			}
+			tt.wantErr(t, s.CheckUploadFileData(tt.args.ctx, tt.args.data), fmt.Sprintf("CheckUploadFileData(%v, %v)", tt.args.ctx, tt.args.data))
+		})
+	}
 }

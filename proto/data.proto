@@ -8,7 +8,7 @@ import "google/protobuf/empty.proto";
 option go_package = "gophkeeper/proto";
 
 message Data {
-  int64 Id = 1;
+  uint64 Id = 1;
   string Name = 2 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 255];
   string Login = 3;
   string Pass = 4;
@@ -17,11 +17,11 @@ message Data {
   string Meta = 7;
   string FileName = 8;
   bytes FileChunk = 9;
-  int64 Version = 10;
+  uint64 Version = 10;
 }
 
 message DataList {
-  int64 Id = 1;
+  uint64 Id = 1;
   string Name = 2;
 }
 
@@ -30,19 +30,19 @@ message SaveDataRequest {
 }
 
 message GetDataRequest {
-  int64 Id = 1 [(buf.validate.field).int64.gt = 0];
+  uint64 Id = 1 [(buf.validate.field).int64.gt = 0];
 }
 
 message DeleteDataRequest {
-  int64 Id = 1;
+  uint64 Id = 1;
 }
 
 message UploadFileRequest {
-  int64 DataId = 1 [(buf.validate.field).int64.gt = 0];
-  int64 FileId = 2;
-  int64 DataVersion = 3 [(buf.validate.field).int64.gt = 0];;
+  uint64 DataId = 1 [(buf.validate.field).int64.gt = 0];
+  uint64 FileId = 2;
+  uint64 DataVersion = 3 [(buf.validate.field).int64.gt = 0];;
   string FileName = 4 [(buf.validate.field).string.min_len = 1, (buf.validate.field).string.max_len = 255];
-  bytes FileChunk = 5;
+  bytes FileChunk = 5 [(buf.validate.field).bytes.min_len = 1];
 }
 
 message GetDataResponse {
@@ -51,8 +51,8 @@ message GetDataResponse {
 }
 
 message SaveDataResponse {
-  int64 DataId = 1;
-  int64 DataVersion = 2;
+  uint64 DataId = 1;
+  uint64 DataVersion = 2;
   string error = 3;
 }
 
@@ -66,7 +66,7 @@ message DeleteDataResponse {
 
 message FileUploadResponse {
   string FileId = 1;
-  int64 DataVersion = 2;
+  uint64 DataVersion = 2;
   uint32 Size = 3;
 }
 

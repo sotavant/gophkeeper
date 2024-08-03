@@ -2,8 +2,10 @@ package pgsql
 
 import (
 	"context"
+	"gophkeeper/domain"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -24,6 +26,66 @@ func NewFileRepository(ctx context.Context, pool *pgxpool.Pool, tableName string
 		DBPoll:    pool,
 		tableName: tableName,
 	}, nil
+}
+
+func (f *FileRepository) Get(ctx context.Context, id uint64) (*domain.File, error) {
+	query := f.setTableName(`select * from #T# where id = $1`)
+
+	row, err := f.getOne(ctx, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &row, nil
+}
+
+func (f *FileRepository) Insert(ctx context.Context, file *domain.File) error {
+	query := f.setTableName(`insert into #T# (name, path) values ($1, $2) returning id`)
+
+	err := f.DBPoll.QueryRow(ctx, query, file.Name, file.Path).Scan(&file.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *FileRepository) Update(ctx context.Context, file *domain.File) error {
+	query := f.setTableName(`update #T# set
+		name = $1, 
+		path = $2
+		where id = $3
+	`)
+
+	_, err := f.DBPoll.Exec(ctx, query, file.Name, file.Path, file.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *FileRepository) setTableName(query string) string {
+	return strings.ReplaceAll(query, "#T#", f.tableName)
+}
+
+func (f *FileRepository) getOne(ctx context.Context, query string, args ...interface{}) (file domain.File, err error) {
+	rows, err := f.DBPoll.Query(ctx, query, args...)
+	if err != nil {
+		return
+	}
+
+	files, err := pgx.CollectRows(rows, pgx.RowToStructByName[domain.File])
+	if err != nil {
+		return
+	}
+
+	for _, file = range files {
+		return
+	}
+
+	return
 }
 
 func createFileTable(ctx context.Context, pool *pgxpool.Pool, tableName string) error {

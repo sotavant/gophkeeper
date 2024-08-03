@@ -2,6 +2,6 @@ package data
 
 import "time"
 
-func getVersion() int64 {
-	return time.Now().Unix()
+func getVersion() uint64 {
+	return uint64(time.Now().Unix())
 }

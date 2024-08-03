@@ -13,16 +13,19 @@ import (
 const (
 	runAddressVar  = "RUN_ADDRESS"
 	databaseURIVar = "DATABASE_URI"
+	saveFilesPath  = "FILES_SAVE_PATH"
 )
 
 type App struct {
-	Address string
-	DBPool  *pgxpool.Pool
+	Address       string
+	DBPool        *pgxpool.Pool
+	FilesSavePath string
 }
 
 type config struct {
-	runAddress  string
-	databaseURI string
+	runAddress,
+	databaseURI,
+	saveFilePath string
 }
 
 func InitApp(ctx context.Context) (*App, error) {
@@ -38,8 +41,9 @@ func InitApp(ctx context.Context) (*App, error) {
 	}
 
 	return &App{
-		Address: c.runAddress,
-		DBPool:  dbPool,
+		Address:       c.runAddress,
+		DBPool:        dbPool,
+		FilesSavePath: c.saveFilePath,
 	}, nil
 }
 
@@ -48,6 +52,7 @@ func initConfig() *config {
 
 	flag.StringVar(&c.runAddress, "a", "", "server address")
 	flag.StringVar(&c.databaseURI, "d", "", "database uri")
+	flag.StringVar(&c.saveFilePath, "f", "", "save files path")
 
 	flag.Parse()
 
@@ -56,6 +61,10 @@ func initConfig() *config {
 	}
 
 	if envVar := os.Getenv(databaseURIVar); envVar != "" {
+		c.databaseURI = envVar
+	}
+
+	if envVar := os.Getenv(saveFilesPath); envVar != "" {
 		c.databaseURI = envVar
 	}
 
@@ -82,7 +91,7 @@ func initDB(ctx context.Context, DSN string) (*pgxpool.Pool, error) {
 }
 
 func checkConfig(c *config) error {
-	if c.runAddress == "" || c.databaseURI == "" {
+	if c.runAddress == "" || c.databaseURI == "" || c.saveFilePath == "" {
 		return errors.New("please, check configs")
 	}
 
