@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"gophkeeper/domain"
 	"gophkeeper/internal"
 )
@@ -24,7 +25,7 @@ func NewService(d Repository) *Service {
 }
 
 func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
-	if data.ID == nil {
+	if data.ID == 0 {
 		uniq, err := s.checkName(ctx, data, nil)
 		if err != nil {
 			internal.Logger.Errorw("error while checking name", "err", err)
@@ -35,15 +36,21 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 			return domain.ErrDataNameNotUniq
 		}
 
-		version := getVersion()
-		data.Version = &version
+		data.Version = getVersion()
 
 		err = s.dataRepo.Insert(ctx, data)
 		if err != nil {
+			fmt.Println(data)
+			internal.Logger.Errorw("error while inserting data", "err", err)
 			return domain.ErrDataInsert
 		}
 	} else {
-		oldRow, err := s.dataRepo.GetById(ctx, *data.ID, []string{"version", "name"})
+		oldRow, err := s.dataRepo.GetById(ctx, data.ID, []string{})
+		if err != nil {
+			internal.Logger.Errorw("error while fetching data", "id", data.ID, "err", err)
+			return domain.ErrInternalServerError
+		}
+
 		err = s.updateVersion(oldRow, data)
 		if err != nil {
 			return err
@@ -61,6 +68,8 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 
 		err = s.dataRepo.Update(ctx, *data)
 		if err != nil {
+			fmt.Println(data.UID, data.Name)
+			internal.Logger.Errorw("error while updating data", "id", data.ID, "err", err)
 			return domain.ErrDataUpdate
 		}
 	}
@@ -69,16 +78,15 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 }
 
 func (s Service) updateVersion(oldRow *domain.Data, newRow *domain.Data) error {
-	if newRow.Version == nil {
+	if newRow.Version == 0 {
 		return domain.ErrDataVersionAbsent
 	}
 
-	if *oldRow.Version != *newRow.Version {
+	if oldRow.Version != newRow.Version {
 		return domain.ErrDataOutdated
 	}
 
-	version := getVersion()
-	newRow.Version = &version
+	newRow.Version = getVersion()
 
 	return nil
 }
@@ -88,18 +96,19 @@ func (s Service) updateVersion(oldRow *domain.Data, newRow *domain.Data) error {
 func (s Service) checkName(ctx context.Context, data *domain.Data, oldData *domain.Data) (uniq bool, err error) {
 	var id int64
 
-	if data.ID != nil && data.Name == oldData.Name {
+	if data.ID != 0 && data.Name == oldData.Name {
 		uniq = true
 		return
 	}
 
-	id, err = s.dataRepo.GetByNameAndUserID(ctx, *data.UID, data.Name)
+	id, err = s.dataRepo.GetByNameAndUserID(ctx, data.UID, data.Name)
 	if err != nil {
 		return
 	}
 
 	if id != 0 {
 		uniq = false
+		return
 	}
 
 	uniq = true

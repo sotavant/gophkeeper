@@ -72,11 +72,7 @@ func (d *DataRepository) GetByNameAndUserID(ctx context.Context, uid int64, name
 		return 0, err
 	}
 
-	if data.ID == nil {
-		return 0, nil
-	}
-
-	return *data.ID, nil
+	return data.ID, nil
 }
 
 func (d *DataRepository) GetById(ctx context.Context, id int64, fields []string) (*domain.Data, error) {

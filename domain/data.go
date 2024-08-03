@@ -1,14 +1,14 @@
 package domain
 
 type Data struct {
-	Login,
+	Name string
+	ID,
+	Version,
+	UID int64
 	Pass,
 	CardNum,
 	Text,
-	Name,
-	Meta string
-	File,
-	ID,
-	Version,
-	UID *int64
+	Meta,
+	Login *string
+	File *int64
 }

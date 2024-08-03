@@ -30,8 +30,8 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 	}
 
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(int64)
-	ur.Data.UID = &ctxUID
-	if *ur.Data.UID == 0 {
+	ur.Data.UID = ctxUID
+	if ur.Data.UID == 0 {
 		return nil, getError(domain.ErrUserIDAbsent)
 	}
 
@@ -41,7 +41,7 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 	}
 
 	return &pb.SaveDataResponse{
-		DataId: *ur.ID,
+		DataId: ur.ID,
 	}, nil
 }
 
@@ -77,13 +77,18 @@ func (d *dataRequest) Bind(req *pb.SaveDataRequest) error {
 	}
 
 	reqData := req.GetData()
-	reqDataId := reqData.GetId()
-	d.ID = &reqDataId
-	d.Login = reqData.GetLogin()
-	d.Pass = reqData.GetPass()
-	d.Text = reqData.GetText()
-	d.Meta = reqData.GetMeta()
-	d.CardNum = reqData.GetCardNum()
+	login := reqData.GetLogin()
+	pass := reqData.GetPass()
+	text := reqData.GetText()
+	meta := reqData.GetMeta()
+	cardNum := reqData.GetCardNum()
+
+	d.ID = reqData.GetId()
+	d.Login = &login
+	d.Pass = &pass
+	d.Text = &text
+	d.Meta = &meta
+	d.CardNum = &cardNum
 
 	return nil
 }

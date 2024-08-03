@@ -44,20 +44,22 @@ func TestService_UpsertData(t *testing.T) {
 
 	var versionFirst int64 = 1
 	var versionSecond int64 = 2
+	login := "test"
+	successTextData := "success update"
 	testData := &domain.Data{
 		Name:    "testic",
-		Login:   "test",
-		Pass:    "test",
-		Version: &versionFirst,
-		UID:     &userId,
+		Login:   &login,
+		Pass:    &login,
+		Version: versionFirst,
+		UID:     userId,
 	}
 
 	testData2 := &domain.Data{
 		Name:    "testic2",
-		Login:   "test",
-		Pass:    "test",
-		Version: &versionSecond,
-		UID:     &userId,
+		Login:   &login,
+		Pass:    &login,
+		Version: versionSecond,
+		UID:     userId,
 	}
 
 	err = repo.Insert(ctx, testData)
@@ -73,20 +75,21 @@ func TestService_UpsertData(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		data domain.Data
-		want want
+		name          string
+		data          domain.Data
+		want          want
+		updateVersion bool
 	}{
 		{
 			name: "success new data", // need check userId and version
 			data: domain.Data{
-				Login:   "test",
-				Pass:    "test",
-				CardNum: "test",
-				Text:    "test",
+				Login:   &login,
+				Pass:    &login,
+				CardNum: &login,
+				Text:    &login,
 				Name:    "test",
-				Meta:    "test",
-				UID:     &userId,
+				Meta:    &login,
+				UID:     userId,
 			},
 			want: want{
 				err: nil,
@@ -95,13 +98,13 @@ func TestService_UpsertData(t *testing.T) {
 		{
 			name: "name exist", // need check userId and version
 			data: domain.Data{
-				Login:   "test",
-				Pass:    "test",
-				CardNum: "test",
-				Text:    "test",
+				Login:   &login,
+				Pass:    &login,
+				CardNum: &login,
+				Text:    &login,
 				Name:    testData.Name,
-				Meta:    "test",
-				UID:     &userId,
+				Meta:    &login,
+				UID:     userId,
 			},
 			want: want{
 				err: domain.ErrDataNameNotUniq,
@@ -111,7 +114,7 @@ func TestService_UpsertData(t *testing.T) {
 			name: "success update",
 			data: domain.Data{
 				ID:      testData.ID,
-				Text:    "success update",
+				Text:    &successTextData,
 				Version: testData.Version,
 			},
 			want: want{
@@ -119,18 +122,20 @@ func TestService_UpsertData(t *testing.T) {
 			},
 		},
 		{
-			name: "wrong update: name exist",
+			name: "wrong update name exist",
 			data: domain.Data{
 				ID:      testData.ID,
+				UID:     testData.UID,
 				Name:    testData2.Name,
 				Version: testData.Version,
 			},
 			want: want{
 				err: domain.ErrDataNameNotUniq,
 			},
+			updateVersion: true,
 		},
 		{
-			name: "wrong update: version absent",
+			name: "wrong update version absent",
 			data: domain.Data{
 				ID:   testData.ID,
 				Name: testData.Name,
@@ -140,11 +145,11 @@ func TestService_UpsertData(t *testing.T) {
 			},
 		},
 		{
-			name: "wrong update: bad version",
+			name: "wrong update bad version",
 			data: domain.Data{
 				ID:      testData.ID,
 				Name:    testData.Name,
-				Version: &versionSecond,
+				Version: versionSecond,
 			},
 			want: want{
 				err: domain.ErrDataOutdated,
@@ -153,6 +158,13 @@ func TestService_UpsertData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.updateVersion {
+				var dd *domain.Data
+				dd, err = repo.GetById(ctx, tt.data.ID, []string{})
+				assert.NoError(t, err)
+				tt.data.Version = dd.Version
+			}
+
 			err = service.UpsertData(ctx, &tt.data)
 			if tt.want.err == nil {
 				assert.NoError(t, err)
