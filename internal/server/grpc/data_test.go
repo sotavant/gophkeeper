@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"gophkeeper/data"
 	"gophkeeper/domain"
 	"gophkeeper/file"
@@ -359,6 +360,329 @@ func TestDataServer_GetDataList(t *testing.T) {
 			got, err = server.GetDataList(respCtx, &emptypb.Empty{})
 			assert.NoError(t, err)
 			assert.Len(t, got.DataList, tt.wantCount)
+		})
+	}
+}
+
+func TestDataServer_GetData(t *testing.T) {
+	userTable := "p_users"
+	fileTable := "p_files"
+	dataTable := "p_data"
+
+	ctx := context.Background()
+	internal.InitLogger()
+	pool, err := test.InitConnection(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, pool, "no databases init")
+
+	defer func(ctx context.Context, pool *pgxpool.Pool) {
+		err = test.CleanData(ctx, pool, []string{userTable, fileTable, dataTable})
+		assert.NoError(t, err)
+	}(ctx, pool)
+
+	fileRepo, err := pgsql.NewFileRepository(ctx, pool, fileTable)
+	assert.NoError(t, err)
+
+	dbFile := &domain.File{
+		Name: "test",
+		Path: "test",
+	}
+	err = fileRepo.Insert(ctx, dbFile)
+
+	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
+	assert.NoError(t, err)
+
+	user := &domain.User{
+		Login:    "test",
+		Password: "test",
+	}
+	userID, err := userRepo.Store(ctx, *user)
+	assert.NoError(t, err)
+
+	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
+	assert.NoError(t, err)
+
+	dData := domain.Data{
+		Name:    "5",
+		Version: 1,
+		UID:     userID,
+		FileID:  &dbFile.ID,
+	}
+
+	err = repo.Insert(ctx, &dData)
+	assert.NoError(t, err)
+
+	service := data.NewService(repo, fileRepo)
+	server := NewDataServer(service, "/tmp/uploaded", file.NewService(fileRepo))
+
+	tests := []struct {
+		name        string
+		dataRequest *pb.GetDataRequest
+		reqUID      uint64
+		wantErr     codes.Code
+	}{
+		{
+			name: "success",
+			dataRequest: &pb.GetDataRequest{
+				Id: dData.ID,
+			},
+			reqUID:  userID,
+			wantErr: codes.OK,
+		},
+		{
+			name: "wrong user",
+			dataRequest: &pb.GetDataRequest{
+				Id: dData.ID,
+			},
+			reqUID:  2,
+			wantErr: codes.NotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			respCtx := context.WithValue(ctx, user2.ContextUserIDKey{}, tt.reqUID)
+			_, err = server.GetData(respCtx, tt.dataRequest)
+			if tt.wantErr != codes.OK {
+				e, _ := status.FromError(err)
+				assert.Equal(t, tt.wantErr, e.Code())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestDataServer_DeleteData(t *testing.T) {
+	userTable := "p_users"
+	fileTable := "p_files"
+	dataTable := "p_data"
+
+	ctx := context.Background()
+	internal.InitLogger()
+	pool, err := test.InitConnection(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, pool, "no databases init")
+
+	defer func(ctx context.Context, pool *pgxpool.Pool) {
+		err = test.CleanData(ctx, pool, []string{userTable, fileTable, dataTable})
+		assert.NoError(t, err)
+	}(ctx, pool)
+
+	fileRepo, err := pgsql.NewFileRepository(ctx, pool, fileTable)
+	assert.NoError(t, err)
+
+	tmpFile, err := os.CreateTemp("/tmp", "test_delete_date")
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	dbFile := &domain.File{
+		Name: filepath.Base(tmpFile.Name()),
+		Path: tmpFile.Name(),
+	}
+	err = fileRepo.Insert(ctx, dbFile)
+
+	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
+	assert.NoError(t, err)
+
+	user := &domain.User{
+		Login:    "test",
+		Password: "test",
+	}
+	userID, err := userRepo.Store(ctx, *user)
+	assert.NoError(t, err)
+
+	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
+	assert.NoError(t, err)
+
+	dData := domain.Data{
+		Name:    "5",
+		Version: 1,
+		UID:     userID,
+		FileID:  &dbFile.ID,
+	}
+
+	err = repo.Insert(ctx, &dData)
+	assert.NoError(t, err)
+
+	service := data.NewService(repo, fileRepo)
+	server := NewDataServer(service, "/tmp/uploaded", file.NewService(fileRepo))
+
+	respCtx := context.WithValue(ctx, user2.ContextUserIDKey{}, userID)
+	_, err = server.DeleteData(respCtx, &pb.DeleteDataRequest{Id: dData.ID})
+	assert.NoError(t, err)
+
+	_, err = os.Stat(tmpFile.Name())
+	assert.True(t, os.IsNotExist(err))
+
+	dd, err := repo.Get(ctx, dData.ID)
+	assert.NoError(t, err)
+	assert.Nil(t, dd)
+}
+
+func TestDataServer_DownloadFile(t *testing.T) {
+	userTable := "k_users"
+	fileTable := "k_files"
+	dataTable := "k_data"
+
+	ctx := context.Background()
+	internal.InitLogger()
+	pool, err := test.InitConnection(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, pool, "no databases init")
+
+	defer func(ctx context.Context, pool *pgxpool.Pool) {
+		err = test.CleanData(ctx, pool, []string{userTable, fileTable, dataTable})
+		assert.NoError(t, err)
+	}(ctx, pool)
+
+	fileRepo, err := pgsql.NewFileRepository(ctx, pool, fileTable)
+	assert.NoError(t, err)
+
+	tmpFile, err := os.CreateTemp("/tmp", "test_download_date")
+	n, err := tmpFile.Write([]byte("some super text"))
+	fmt.Printf("write bytes: %d\n", n)
+
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	dbFile := &domain.File{
+		Name: filepath.Base(tmpFile.Name()),
+		Path: tmpFile.Name(),
+	}
+	err = fileRepo.Insert(ctx, dbFile)
+	assert.NoError(t, err)
+
+	dbFileWithBadFile := &domain.File{
+		Name: filepath.Base(tmpFile.Name()),
+		Path: tmpFile.Name() + "____",
+	}
+	err = fileRepo.Insert(ctx, dbFileWithBadFile)
+	assert.NoError(t, err)
+
+	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
+	assert.NoError(t, err)
+
+	user := &domain.User{
+		Login:    "test",
+		Password: "test",
+	}
+	userID, err := userRepo.Store(ctx, *user)
+	assert.NoError(t, err)
+
+	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
+	assert.NoError(t, err)
+
+	dData := domain.Data{
+		Name:    "5",
+		Version: 1,
+		UID:     userID,
+		FileID:  &dbFile.ID,
+	}
+
+	err = repo.Insert(ctx, &dData)
+	assert.NoError(t, err)
+
+	dDataWithWrongFilePath := domain.Data{
+		Name:    "6",
+		Version: 1,
+		UID:     userID,
+		FileID:  &dbFileWithBadFile.ID,
+	}
+
+	err = repo.Insert(ctx, &dDataWithWrongFilePath)
+	assert.NoError(t, err)
+
+	service := data.NewService(repo, fileRepo)
+	server := NewDataServer(service, "/tmp/uploaded", file.NewService(fileRepo))
+
+	lis = bufconn.Listen(bufSize)
+	s := grpc.NewServer(grpc.UnaryInterceptor(interceptors.Auth), grpc.StreamInterceptor(interceptors.StreamAuth))
+	pb.RegisterDataServiceServer(s, server)
+	go func() {
+		err = s.Serve(lis)
+		assert.NoError(t, err)
+	}()
+
+	conn, err := grpc.NewClient("passthrough://bufnet", grpc.WithContextDialer(bufDialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	assert.NoError(t, err)
+	defer func(conn *grpc.ClientConn) {
+		err = conn.Close()
+		assert.NoError(t, err)
+	}(conn)
+
+	client := pb.NewDataServiceClient(conn)
+
+	tests := []struct {
+		name    string
+		wantErr codes.Code
+		request *pb.DownloadFileRequest
+		userID  uint64
+	}{
+		{
+			name:    "bad userId",
+			wantErr: codes.NotFound,
+			request: &pb.DownloadFileRequest{
+				DataID: dData.ID,
+				FileID: dbFile.ID,
+			},
+			userID: userID + 1,
+		},
+		{
+			name:    "bad fileId",
+			wantErr: codes.NotFound,
+			request: &pb.DownloadFileRequest{
+				DataID: dData.ID,
+				FileID: dbFile.ID + 1,
+			},
+			userID: userID,
+		},
+		{
+			name: "file not exist",
+			request: &pb.DownloadFileRequest{
+				DataID: dDataWithWrongFilePath.ID,
+				FileID: dbFileWithBadFile.ID,
+			},
+			userID:  userID,
+			wantErr: codes.Internal,
+		},
+		{
+			name: "ok",
+			request: &pb.DownloadFileRequest{
+				DataID: dData.ID,
+				FileID: dbFile.ID,
+			},
+			userID:  userID,
+			wantErr: codes.OK,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			token, err := auth.BuildJWTString(tt.userID)
+			assert.NoError(t, err)
+
+			md := metadata.Pairs(domain.AuthorizationMetaKey, domain.TokenSubstr+" "+token)
+			mCtx := metadata.NewOutgoingContext(ctx, md)
+
+			fileStreamResponse, err := client.DownloadFile(mCtx, tt.request)
+			assert.NoError(t, err)
+
+			for {
+				rr, err := fileStreamResponse.Recv()
+				if err == io.EOF {
+					break
+				}
+
+				if tt.wantErr != codes.OK {
+					fmt.Println(err)
+					e, ok := status.FromError(err)
+					assert.True(t, ok)
+					assert.Equal(t, tt.wantErr, e.Code())
+					break
+				} else {
+					assert.NoError(t, err)
+					assert.Equal(t, n, len(rr.FileChunk))
+				}
+			}
 		})
 	}
 }

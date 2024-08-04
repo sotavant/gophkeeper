@@ -16,4 +16,5 @@ var (
 	ErrDataNameNotUniq     = errors.New("data name not uniq")
 	ErrDataNotFound        = errors.New("data not found")
 	ErrBadFileID           = errors.New("bad file id")
+	ErrFileNotFound        = errors.New("file not found")
 )

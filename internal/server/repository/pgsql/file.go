@@ -66,6 +66,12 @@ func (f *FileRepository) Update(ctx context.Context, file *domain.File) error {
 	return nil
 }
 
+func (f *FileRepository) Delete(ctx context.Context, id uint64) error {
+	query := f.setTableName(`delete from #T# where id = $1`)
+	_, err := f.DBPoll.Exec(ctx, query, id)
+	return err
+}
+
 func (f *FileRepository) setTableName(query string) string {
 	return strings.ReplaceAll(query, "#T#", f.tableName)
 }

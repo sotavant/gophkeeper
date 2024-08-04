@@ -9,6 +9,7 @@ import (
 	pb "gophkeeper/proto"
 	"gophkeeper/user"
 	"io"
+	"os"
 
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/grpc/codes"
@@ -48,11 +49,59 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 }
 
 func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDataResponse, error) {
+	var err error
+	var dbFile *domain.File
 
-	return nil, nil
+	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
+	if ctxUID == 0 {
+		return nil, domain.ErrUserIDAbsent
+	}
+
+	v, err := protovalidate.New()
+	if err != nil {
+		internal.Logger.Fatalw("failed to initialize validator", "err", err)
+	}
+
+	if err = v.Validate(req); err != nil {
+		internal.Logger.Errorw("upload request validation error", "err", err)
+		return nil, domain.ErrBadData
+	}
+
+	d, err := s.Service.Get(ctx, req.GetId(), ctxUID)
+	if err != nil {
+		return nil, getError(err)
+	}
+
+	if d.FileID != nil {
+		dbFile, err = s.FileService.Get(ctx, *d.FileID)
+		if err != nil {
+			return nil, getError(err)
+		}
+	}
+
+	return getDataResponse(*d, dbFile), nil
 }
 
-func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) (*pb.DeleteDataResponse, error) {
+func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) (*emptypb.Empty, error) {
+	var err error
+
+	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
+	if ctxUID == 0 {
+		return nil, domain.ErrUserIDAbsent
+	}
+
+	v, err := protovalidate.New()
+	if err != nil {
+		internal.Logger.Fatalw("failed to initialize validator", "err", err)
+	}
+
+	if err = v.Validate(req); err != nil {
+		internal.Logger.Errorw("upload request validation error", "err", err)
+		return nil, domain.ErrBadData
+	}
+
+	err = s.Service.Delete(ctx, req.GetId(), ctxUID, s.FileService)
+
 	return nil, nil
 }
 
@@ -145,6 +194,71 @@ func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 	})
 }
 
+func (s *DataServer) DownloadFile(req *pb.DownloadFileRequest, stream pb.DataService_DownloadFileServer) error {
+	dr := &DownloadFileRequest{}
+	if err := dr.BindDownloadFileRequest(stream.Context(), req); err != nil {
+		return getError(err)
+	}
+
+	dbData, err := s.Service.Get(stream.Context(), dr.DataID, dr.UID)
+	if err != nil {
+		return getError(err)
+	}
+
+	if dbData.FileID == nil || *dbData.FileID != dr.FileID {
+		return getError(domain.ErrFileNotFound)
+	}
+
+	file, err := s.FileService.Get(stream.Context(), dr.FileID)
+	if err != nil {
+		return getError(err)
+	}
+
+	if file == nil {
+		return getError(domain.ErrFileNotFound)
+	}
+
+	bufferSize := 1024 * 1024
+	var bytesRead int
+
+	osFile, err := os.Open(file.Path)
+	if err != nil {
+		internal.Logger.Errorw("error opening file", "err", err)
+		return status.Error(codes.Internal, "error opening file")
+	}
+
+	defer func(osFile *os.File) {
+		err = osFile.Close()
+		if err != nil {
+			internal.Logger.Errorw("error closing file", "err", err)
+		}
+	}(osFile)
+
+	buff := make([]byte, bufferSize)
+	for {
+		bytesRead, err = osFile.Read(buff)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			internal.Logger.Errorw("error reading file", "err", err)
+			return status.Error(codes.Internal, "error reading file")
+		}
+
+		resp := &pb.DownloadFileResponse{
+			FileChunk: buff[:bytesRead],
+		}
+
+		if err = stream.Send(resp); err != nil {
+			internal.Logger.Errorw("error sending response", "err", err)
+			return status.Error(codes.Internal, "error sending response")
+		}
+	}
+
+	return nil
+}
+
 type dataRequest struct {
 	*domain.Data
 }
@@ -210,6 +324,42 @@ func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 	return nil
 }
 
+func getDataResponse(data domain.Data, file *domain.File) *pb.GetDataResponse {
+	fileName := ""
+	if file != nil {
+		fileName = file.Name
+	}
+
+	respData := &pb.Data{
+		Id:       data.ID,
+		Name:     data.Name,
+		FileName: fileName,
+		Version:  data.Version,
+	}
+
+	if data.Login != nil {
+		respData.Login = *data.Login
+	}
+
+	if data.Pass != nil {
+		respData.Pass = *data.Pass
+	}
+
+	if data.Text != nil {
+		respData.Text = *data.Text
+	}
+
+	if data.CardNum != nil {
+		respData.CardNum = *data.CardNum
+	}
+
+	if data.Meta != nil {
+		respData.Meta = *data.Meta
+	}
+
+	return &pb.GetDataResponse{Data: respData}
+}
+
 func getDataListResponse(data []domain.DataName) *pb.DataListResponse {
 	dataList := make([]*pb.DataList, len(data))
 
@@ -223,4 +373,33 @@ func getDataListResponse(data []domain.DataName) *pb.DataListResponse {
 	return &pb.DataListResponse{
 		DataList: dataList,
 	}
+}
+
+type DownloadFileRequest struct {
+	DataID uint64
+	UID    uint64
+	FileID uint64
+}
+
+func (d *DownloadFileRequest) BindDownloadFileRequest(ctx context.Context, req *pb.DownloadFileRequest) error {
+	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
+	if ctxUID == 0 {
+		return domain.ErrUserIDAbsent
+	}
+
+	v, err := protovalidate.New()
+	if err != nil {
+		internal.Logger.Fatalw("failed to initialize validator", "err", err)
+	}
+
+	if err = v.Validate(req); err != nil {
+		internal.Logger.Errorw("user validation error", "err", err)
+		return domain.ErrBadData
+	}
+
+	d.DataID = req.GetDataID()
+	d.UID = ctxUID
+	d.FileID = req.GetFileID()
+
+	return nil
 }

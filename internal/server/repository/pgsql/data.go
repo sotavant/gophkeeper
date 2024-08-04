@@ -98,6 +98,25 @@ func (d *DataRepository) Get(ctx context.Context, id uint64) (*domain.Data, erro
 		return nil, err
 	}
 
+	if row.ID == 0 {
+		return nil, nil
+	}
+
+	return &row, nil
+}
+
+func (d *DataRepository) GetByUser(ctx context.Context, id, uid uint64) (*domain.Data, error) {
+	query := d.setTableName(`select * from #T# where id = $1 and uid = $2`)
+
+	row, err := d.getOne(ctx, query, id, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	if row.ID == 0 {
+		return nil, nil
+	}
+
 	return &row, nil
 }
 
@@ -117,6 +136,12 @@ func (d *DataRepository) GetList(ctx context.Context, uid uint64) ([]domain.Data
 	}
 
 	return res, nil
+}
+
+func (d *DataRepository) Delete(ctx context.Context, id uint64) error {
+	query := d.setTableName(`delete from #T# where id = $1`)
+	_, err := d.DBPoll.Exec(ctx, query, id)
+	return err
 }
 
 func (d *DataRepository) getOne(ctx context.Context, query string, args ...interface{}) (data domain.Data, err error) {

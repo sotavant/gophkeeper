@@ -16,6 +16,7 @@ type FileRepository interface {
 	Insert(ctx context.Context, file *domain.File) error
 	Update(ctx context.Context, file *domain.File) error
 	Get(ctx context.Context, id uint64) (*domain.File, error)
+	Delete(ctx context.Context, id uint64) error
 }
 
 func NewService(repo FileRepository) *Service {
@@ -47,6 +48,44 @@ func (s *Service) Save(ctx context.Context, file *domain.File) error {
 
 	if err = s.repo.Update(ctx, file); err != nil {
 		internal.Logger.Infow("error while updating file", "error", err)
+		return domain.ErrInternalServerError
+	}
+
+	return nil
+}
+
+func (s *Service) Get(ctx context.Context, id uint64) (*domain.File, error) {
+	file, err := s.repo.Get(ctx, id)
+	if err != nil {
+		internal.Logger.Infow("error while getting file", "error", err)
+		return nil, domain.ErrInternalServerError
+	}
+
+	if file == nil {
+		return nil, domain.ErrFileNotFound
+	}
+
+	return file, nil
+}
+
+func (s *Service) Delete(ctx context.Context, id uint64) error {
+	file, err := s.repo.Get(ctx, id)
+	if err != nil {
+		internal.Logger.Infow("error while getting file", "error", err)
+		return domain.ErrInternalServerError
+	}
+
+	if file == nil {
+		return domain.ErrFileNotFound
+	}
+
+	if err = os.Remove(file.Path); err != nil {
+		internal.Logger.Infow("error while removing file", "error", err)
+		return domain.ErrInternalServerError
+	}
+
+	if err = s.repo.Delete(ctx, file.ID); err != nil {
+		internal.Logger.Infow("error while deleting file", "error", err)
 		return domain.ErrInternalServerError
 	}
 

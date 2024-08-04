@@ -17,9 +17,11 @@ type Repository interface {
 	Insert(ctx context.Context, data *domain.Data) error
 	Update(ctx context.Context, data domain.Data) error
 	Get(ctx context.Context, id uint64) (*domain.Data, error)
+	GetByUser(ctx context.Context, id uint64, uid uint64) (*domain.Data, error)
 	GetByNameAndUserID(ctx context.Context, uid uint64, name string) (uint64, error)
 	SetFile(ctx context.Context, data domain.Data) error
 	GetList(ctx context.Context, uid uint64) ([]domain.DataName, error)
+	Delete(ctx context.Context, id uint64) error
 }
 
 type FileRepository interface {
@@ -156,6 +158,48 @@ func (s Service) GetList(ctx context.Context, uid uint64) (list []domain.DataNam
 	}
 
 	return
+}
+
+func (s Service) Get(ctx context.Context, dataID uint64, uid uint64) (data *domain.Data, err error) {
+	data, err = s.DataRepo.GetByUser(ctx, dataID, uid)
+	if err != nil {
+		internal.Logger.Errorw("error while fetching data", "id", dataID, "err", err)
+		return data, domain.ErrInternalServerError
+	}
+
+	if data == nil {
+		return data, domain.ErrDataNotFound
+	}
+
+	return
+}
+
+func (s Service) Delete(ctx context.Context, dataID, uid uint64, fs file.Service) error {
+	data, err := s.DataRepo.GetByUser(ctx, dataID, uid)
+	if err != nil {
+		internal.Logger.Errorw("error while fetching data", "id", dataID, "err", err)
+		return domain.ErrInternalServerError
+	}
+
+	if data == nil {
+		return domain.ErrDataNotFound
+	}
+
+	err = s.DataRepo.Delete(ctx, dataID)
+	if err != nil {
+		internal.Logger.Errorw("error while deleting data", "id", dataID, "err", err)
+		return domain.ErrInternalServerError
+	}
+
+	if data.FileID != nil && *data.FileID != 0 {
+		err = fs.Delete(ctx, *data.FileID)
+		if err != nil {
+			internal.Logger.Errorw("error while deleting file", "id", *data.FileID, "err", err)
+			return domain.ErrInternalServerError
+		}
+	}
+
+	return nil
 }
 
 func (s Service) updateVersion(oldRow *domain.Data, newRow *domain.Data) error {

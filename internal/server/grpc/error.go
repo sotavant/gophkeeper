@@ -18,7 +18,10 @@ func getError(err error) error {
 		errors.Is(err, domain.ErrDataNameNotUniq),
 		errors.Is(err, domain.ErrBadFileID):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrUserNotFound), errors.Is(err, domain.ErrDataNotFound):
+	case
+		errors.Is(err, domain.ErrUserNotFound),
+		errors.Is(err, domain.ErrDataNotFound),
+		errors.Is(err, domain.ErrFileNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	case
 		errors.Is(err, domain.ErrInternalServerError),
