@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var lis *bufconn.Listener
@@ -260,4 +261,104 @@ func TestDataServer_UploadFile(t *testing.T) {
 
 func bufDialer(context.Context, string) (net.Conn, error) {
 	return lis.Dial()
+}
+
+func TestDataServer_GetDataList(t *testing.T) {
+	userTable := "p_users"
+	fileTable := "p_files"
+	dataTable := "p_data"
+
+	ctx := context.Background()
+	internal.InitLogger()
+	pool, err := test.InitConnection(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, pool, "no databases init")
+
+	defer func(ctx context.Context, pool *pgxpool.Pool) {
+		err = test.CleanData(ctx, pool, []string{userTable, fileTable, dataTable})
+		assert.NoError(t, err)
+	}(ctx, pool)
+
+	fileRepo, err := pgsql.NewFileRepository(ctx, pool, fileTable)
+	assert.NoError(t, err)
+
+	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
+	assert.NoError(t, err)
+
+	user := &domain.User{
+		Login:    "test",
+		Password: "test",
+	}
+	userID, err := userRepo.Store(ctx, *user)
+	assert.NoError(t, err)
+
+	user3 := &domain.User{
+		Login:    "testa",
+		Password: "test",
+	}
+	user3ID, err := userRepo.Store(ctx, *user3)
+	assert.NoError(t, err)
+
+	user4 := &domain.User{
+		Login:    "testaa",
+		Password: "test",
+	}
+	user4ID, err := userRepo.Store(ctx, *user4)
+	assert.NoError(t, err)
+
+	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
+	assert.NoError(t, err)
+
+	dData := domain.Data{
+		Name:    "5",
+		Version: 1,
+		UID:     userID,
+	}
+	err = repo.Insert(ctx, &dData)
+	assert.NoError(t, err)
+
+	dData2 := domain.Data{
+		Name:    "6",
+		Version: 1,
+		UID:     userID,
+	}
+	err = repo.Insert(ctx, &dData2)
+	assert.NoError(t, err)
+
+	dData3 := domain.Data{
+		Name:    "7",
+		Version: 1,
+		UID:     user4ID,
+	}
+	err = repo.Insert(ctx, &dData3)
+	assert.NoError(t, err)
+
+	service := data.NewService(repo, fileRepo)
+	server := NewDataServer(service, "/tmp/uploaded", file.NewService(fileRepo))
+
+	tests := []struct {
+		name      string
+		wantCount int
+		uid       uint64
+	}{
+		{
+			name:      "empty list",
+			wantCount: 0,
+			uid:       user3ID,
+		},
+		{
+			name:      "not empty list",
+			wantCount: 2,
+			uid:       userID,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got *pb.DataListResponse
+			respCtx := context.WithValue(ctx, user2.ContextUserIDKey{}, tt.uid)
+			got, err = server.GetDataList(respCtx, &emptypb.Empty{})
+			assert.NoError(t, err)
+			assert.Len(t, got.DataList, tt.wantCount)
+		})
+	}
 }

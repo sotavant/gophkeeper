@@ -101,6 +101,24 @@ func (d *DataRepository) Get(ctx context.Context, id uint64) (*domain.Data, erro
 	return &row, nil
 }
 
+func (d *DataRepository) GetList(ctx context.Context, uid uint64) ([]domain.DataName, error) {
+	var res []domain.DataName
+
+	query := d.setTableName(`select id, name from #T# where uid = $1`)
+
+	rows, err := d.DBPoll.Query(ctx, query, uid)
+	if err != nil {
+		return res, err
+	}
+
+	res, err = pgx.CollectRows(rows, pgx.RowToStructByName[domain.DataName])
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
 func (d *DataRepository) getOne(ctx context.Context, query string, args ...interface{}) (data domain.Data, err error) {
 	rows, err := d.DBPoll.Query(ctx, query, args...)
 	if err != nil {

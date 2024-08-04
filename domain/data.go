@@ -12,3 +12,8 @@ type Data struct {
 	Login *string
 	FileID *uint64
 }
+
+type DataName struct {
+	Name string
+	ID   uint64
+}

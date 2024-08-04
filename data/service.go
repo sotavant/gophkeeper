@@ -19,6 +19,7 @@ type Repository interface {
 	Get(ctx context.Context, id uint64) (*domain.Data, error)
 	GetByNameAndUserID(ctx context.Context, uid uint64, name string) (uint64, error)
 	SetFile(ctx context.Context, data domain.Data) error
+	GetList(ctx context.Context, uid uint64) ([]domain.DataName, error)
 }
 
 type FileRepository interface {
@@ -145,6 +146,16 @@ func (s Service) SaveDataFile(ctx context.Context, data *domain.Data, filePath s
 	}
 
 	return nil
+}
+
+func (s Service) GetList(ctx context.Context, uid uint64) (list []domain.DataName, err error) {
+	list, err = s.DataRepo.GetList(ctx, uid)
+	if err != nil {
+		internal.Logger.Errorw("error while fetching data", "uid", uid, "err", err)
+		return list, domain.ErrInternalServerError
+	}
+
+	return
 }
 
 func (s Service) updateVersion(oldRow *domain.Data, newRow *domain.Data) error {

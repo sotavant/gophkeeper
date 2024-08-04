@@ -48,6 +48,7 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 }
 
 func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDataResponse, error) {
+
 	return nil, nil
 }
 
@@ -56,7 +57,21 @@ func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) 
 }
 
 func (s *DataServer) GetDataList(ctx context.Context, empty *emptypb.Empty) (*pb.DataListResponse, error) {
-	return nil, nil
+	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
+	if ctxUID == 0 {
+		return nil, domain.ErrUserIDAbsent
+	}
+
+	list, err := s.Service.GetList(ctx, ctxUID)
+	if err != nil {
+		return nil, getError(err)
+	}
+
+	if len(list) == 0 {
+		return &pb.DataListResponse{}, nil
+	}
+
+	return getDataListResponse(list), nil
 }
 
 // test: file with same name
@@ -193,4 +208,19 @@ func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 	d.UID = ctxUID
 
 	return nil
+}
+
+func getDataListResponse(data []domain.DataName) *pb.DataListResponse {
+	dataList := make([]*pb.DataList, len(data))
+
+	for i, d := range data {
+		dataList[i] = &pb.DataList{
+			Name: d.Name,
+			Id:   d.ID,
+		}
+	}
+
+	return &pb.DataListResponse{
+		DataList: dataList,
+	}
 }
