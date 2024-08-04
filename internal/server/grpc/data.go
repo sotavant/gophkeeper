@@ -9,7 +9,6 @@ import (
 	pb "gophkeeper/proto"
 	"gophkeeper/user"
 	"io"
-	"strconv"
 
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/grpc/codes"
@@ -20,23 +19,25 @@ import (
 type DataServer struct {
 	pb.UnimplementedDataServiceServer
 	Service       data.Service
+	FileService   file2.Service
 	filesSavePath string
 }
 
-func NewDataServer(s *data.Service, filesSavePath string) *DataServer {
+func NewDataServer(s *data.Service, filesSavePath string, f *file2.Service) *DataServer {
 	return &DataServer{
 		Service:       *s,
 		filesSavePath: filesSavePath,
+		FileService:   *f,
 	}
 }
 
 func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb.SaveDataResponse, error) {
-	ur := &dataRequest{}
+	ur := &dataRequest{&domain.Data{}}
 	if err := ur.Bind(ctx, req); err != nil {
 		return nil, getError(err)
 	}
 
-	err := s.Service.UpsertData(ctx, &ur.Data)
+	err := s.Service.UpsertData(ctx, ur.Data)
 	if err != nil {
 		return nil, getError(err)
 	}
@@ -65,7 +66,7 @@ func (s *DataServer) GetDataList(ctx context.Context, empty *emptypb.Empty) (*pb
 // uploader -> fileService for save file -> dataService for add file
 func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 	validated := false
-	ur := &dataRequest{}
+	ur := &dataRequest{&domain.Data{}}
 
 	var fileSize uint32 = 0
 	file := file2.NewUploader(s.filesSavePath)
@@ -91,7 +92,7 @@ func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 				return getError(err)
 			}
 
-			if err = s.Service.CheckUploadFileData(stream.Context(), ur.Data); err != nil {
+			if err = s.Service.CheckUploadFileData(stream.Context(), *ur.Data); err != nil {
 				return getError(err)
 			}
 
@@ -100,7 +101,7 @@ func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 
 		if file.FilePath == "" {
 			var dir string
-			dir = strconv.FormatUint(ur.Data.UID, 10) + "/" + strconv.FormatUint(ur.Data.UID, 10)
+			dir = file2.GetSaveFileSubDir(*ur.Data)
 			if err = file.SetFile(req.GetFileName(), dir); err != nil {
 				return getError(err)
 			}
@@ -114,12 +115,18 @@ func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 		}
 	}
 
-	s.Service.SaveDataFile(ctx, ur.Data, file.FilePath)
+	if fileSize == 0 {
+		return status.Errorf(codes.InvalidArgument, "file size is zero")
+	}
 
-	return stream.SendAndClose(*pb.FileUploadResponse{
-		FileId:      "",
-		DataVersion: 0,
-		Size:        0,
+	if err := s.Service.SaveDataFile(stream.Context(), ur.Data, file.FilePath, s.FileService); err != nil {
+		return getError(err)
+	}
+
+	return stream.SendAndClose(&pb.FileUploadResponse{
+		FileId:      *ur.Data.FileID,
+		DataVersion: ur.Data.Version,
+		Size:        fileSize,
 	})
 }
 
@@ -153,7 +160,7 @@ func (d *dataRequest) BindUploadFile(ctx context.Context, req *pb.UploadFileRequ
 }
 
 func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
-	ctxUID := ctx.Value(user.ContextUserIDKey{}).(int64)
+	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
 		return domain.ErrUserIDAbsent
 	}
@@ -175,7 +182,7 @@ func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 	meta := reqData.GetMeta()
 	cardNum := reqData.GetCardNum()
 
-	d.ID = reqData.GetId()
+	d.Data.ID = reqData.GetId()
 	d.Version = reqData.GetVersion()
 	d.Name = reqData.GetName()
 	d.Login = &login

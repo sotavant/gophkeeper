@@ -32,9 +32,9 @@ func NewDataRepository(ctx context.Context, pool *pgxpool.Pool, tableName, fileT
 }
 
 func (d *DataRepository) Insert(ctx context.Context, data *domain.Data) error {
-	query := d.setTableName(`insert into #T# (name, uid, login, pass, text, card_num, meta, version) values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`)
+	query := d.setTableName(`insert into #T# (name, uid, login, pass, text, card_num, meta, version, file_id) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`)
 
-	err := d.DBPoll.QueryRow(ctx, query, data.Name, data.UID, data.Login, data.Pass, data.Text, data.CardNum, data.Meta, data.Version).Scan(&data.ID)
+	err := d.DBPoll.QueryRow(ctx, query, data.Name, data.UID, data.Login, data.Pass, data.Text, data.CardNum, data.Meta, data.Version, data.FileID).Scan(&data.ID)
 	if err != nil {
 		return err
 	}
@@ -55,6 +55,22 @@ func (d *DataRepository) Update(ctx context.Context, data domain.Data) error {
 	`)
 
 	_, err := d.DBPoll.Exec(ctx, query, data.Name, data.Login, data.Pass, data.Text, data.CardNum, data.Meta, data.Version, data.ID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *DataRepository) SetFile(ctx context.Context, data domain.Data) error {
+	query := d.setTableName(`update #T# set
+		file_id = $1,
+		version = $2
+		where id = $3
+	`)
+
+	_, err := d.DBPoll.Exec(ctx, query, data.FileID, data.Version, data.ID)
 
 	if err != nil {
 		return err
@@ -115,7 +131,7 @@ func createDataTable(ctx context.Context, pool *pgxpool.Pool, tableName, usersTa
 			uid      integer not null
         		constraint user___fk
             		references #UT#,
-			file   integer
+			file_id   integer
 			    constraint data___fk_file
 			    references #FT#,
     		login    varchar,
@@ -124,7 +140,7 @@ func createDataTable(ctx context.Context, pool *pgxpool.Pool, tableName, usersTa
     		card_num varchar,
     		meta     varchar,
     		version integer not null,
-    		constraint  name_unique UNIQUE (name, uid)
+    		constraint #T#_name_unique UNIQUE (name, uid)
 		);`, "#T#", tableName)
 
 	query = strings.ReplaceAll(query, "#FT#", fileTableName)

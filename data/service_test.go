@@ -3,7 +3,6 @@ package data
 import (
 	"context"
 	"errors"
-	"fmt"
 	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/repository/pgsql"
@@ -201,74 +200,139 @@ func TestService_CheckUploadFileData(t *testing.T) {
 		Login:    "test",
 		Password: "test",
 	}
+	user1 := &domain.User{
+		Login:    "test1",
+		Password: "test",
+	}
 
 	userId, err := userRepo.Store(ctx, *user)
 	assert.NoError(t, err)
 	assert.NotZero(t, userId)
 
-	type fields struct {
-		DataRepo Repository
-		FileRepo FileRepository
+	userId1, err := userRepo.Store(ctx, *user1)
+	assert.NoError(t, err)
+	assert.NotZero(t, userId1)
+
+	fileRepo, err := pgsql.NewFileRepository(ctx, pool, "c_files")
+	assert.NoError(t, err)
+	file := domain.File{
+		Name: "pup",
+		Path: "/dfff/sdd",
 	}
-	type args struct {
-		ctx  context.Context
-		data domain.Data
-	}
+	err = fileRepo.Insert(ctx, &file)
+	assert.NoError(t, err)
+
+	repo, err := pgsql.NewDataRepository(ctx, pool, "c_data", "c_files", "c_users")
+	assert.NoError(t, err)
+	service := NewService(repo, fileRepo)
+
+	var fileId uint64 = 1
+	var fileId1 uint64 = 2
+
 	tests := []struct {
-		name    string
-		insertData    domain.Data
-		newData       domain.Data
-		file domain.File
-		wantErr error
+		name       string
+		insertData *domain.Data
+		newData    domain.Data
+		file       domain.File
+		wantErr    error
 	}{
 		{
-			name: "wrong data.id",
-			insertData: domain.Data{
+			name: "wrong_data_id",
+			insertData: &domain.Data{
 				Name:    "1",
 				Version: 1,
 				UID:     userId,
 				FileID:  nil,
 			},
 			newData: domain.Data{
-
-			}
-			file: domain.File{
-
-			}
+				UID:    userId,
+				FileID: &fileId,
+			},
 			wantErr: domain.ErrDataNotFound,
 		},
 		{
 			name: "bad uid",
+			insertData: &domain.Data{
+				Name:    "2",
+				Version: 1,
+				UID:     userId,
+				FileID:  nil,
+			},
+			newData: domain.Data{
+				UID:    userId1,
+				FileID: &fileId,
+			},
 			wantErr: domain.ErrDataNotFound,
 		},
 		{
-			name: "empty fileId",
-			wantErr: nil,
+			name: "empty db.fileId",
+			insertData: &domain.Data{
+				Name:    "3",
+				Version: 1,
+				UID:     userId,
+				FileID:  nil,
+			},
+			newData: domain.Data{
+				UID:    userId,
+				FileID: &fileId,
+			},
+			wantErr: domain.ErrBadFileID,
 		},
 		{
 			name: "empty data.fileId",
+			insertData: &domain.Data{
+				Name:    "4",
+				Version: 1,
+				UID:     userId,
+				FileID:  nil,
+			},
+			newData: domain.Data{
+				UID:    userId,
+				FileID: nil,
+			},
 			wantErr: nil,
 		},
 		{
 			name: "not equal data.fileId and db.dataId",
-			wantErr: domain.ErrBadFileID,
-		},
-		{
-			name: "bd.fileId is null, data.fileId not null",
+			insertData: &domain.Data{
+				Name:    "5",
+				Version: 1,
+				UID:     userId,
+				FileID:  &fileId,
+			},
+			newData: domain.Data{
+				UID:    userId,
+				FileID: &fileId1,
+			},
 			wantErr: domain.ErrBadFileID,
 		},
 		{
 			name: "bd.fileId not null, data.fileId not null",
+			insertData: &domain.Data{
+				Name:    "6",
+				Version: 1,
+				UID:     userId,
+				FileID:  &file.ID,
+			},
+			newData: domain.Data{
+				UID:    userId,
+				FileID: &file.ID,
+			},
 			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := Service{
-				DataRepo: tt.fields.DataRepo,
-				FileRepo: tt.fields.FileRepo,
+			err = repo.Insert(ctx, tt.insertData)
+			assert.NoError(t, err)
+			tt.newData.ID = tt.insertData.ID
+
+			err = service.CheckUploadFileData(ctx, tt.newData)
+			if tt.wantErr != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
-			tt.wantErr(t, s.CheckUploadFileData(tt.args.ctx, tt.args.data), fmt.Sprintf("CheckUploadFileData(%v, %v)", tt.args.ctx, tt.args.data))
 		})
 	}
 }

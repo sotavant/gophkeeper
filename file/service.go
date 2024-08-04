@@ -5,6 +5,7 @@ import (
 	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"os"
+	"strconv"
 )
 
 type Service struct {
@@ -50,4 +51,8 @@ func (s *Service) Save(ctx context.Context, file *domain.File) error {
 	}
 
 	return nil
+}
+
+func GetSaveFileSubDir(data domain.Data) string {
+	return "/" + strconv.FormatUint(data.UID, 10) + "/" + strconv.FormatUint(data.ID, 10)
 }

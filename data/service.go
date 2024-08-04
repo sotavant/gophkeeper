@@ -3,7 +3,9 @@ package data
 import (
 	"context"
 	"gophkeeper/domain"
+	"gophkeeper/file"
 	"gophkeeper/internal"
+	"path/filepath"
 )
 
 type Service struct {
@@ -16,6 +18,7 @@ type Repository interface {
 	Update(ctx context.Context, data domain.Data) error
 	Get(ctx context.Context, id uint64) (*domain.Data, error)
 	GetByNameAndUserID(ctx context.Context, uid uint64, name string) (uint64, error)
+	SetFile(ctx context.Context, data domain.Data) error
 }
 
 type FileRepository interface {
@@ -95,8 +98,8 @@ func (s Service) CheckUploadFileData(ctx context.Context, data domain.Data) erro
 		return domain.ErrDataNotFound
 	}
 
-	if data.FileID != nil {
-		if d.FileID == nil || &d.FileID != &data.FileID {
+	if data.FileID != nil && *data.FileID != 0 {
+		if d.FileID == nil || *d.FileID != *data.FileID {
 			return domain.ErrBadFileID
 		}
 
@@ -109,7 +112,37 @@ func (s Service) CheckUploadFileData(ctx context.Context, data domain.Data) erro
 	return nil
 }
 
-func (s Service) SaveDataFile(ctx context.Context, data *domain.Data) error {
+// if data.fileId - remove old file and update row
+// if new file - save file, and save data
+func (s Service) SaveDataFile(ctx context.Context, data *domain.Data, filePath string, f file.Service) error {
+	dFile := domain.File{
+		Name: filepath.Base(filePath),
+		Path: filePath,
+		ID:   *data.FileID,
+	}
+
+	if err := f.Save(ctx, &dFile); err != nil {
+		return err
+	}
+
+	data.FileID = &dFile.ID
+
+	oldRow, err := s.DataRepo.Get(ctx, data.ID)
+	if err != nil {
+		internal.Logger.Errorw("error while fetching data", "id", data.ID, "err", err)
+		return domain.ErrInternalServerError
+	}
+
+	err = s.updateVersion(oldRow, data)
+	if err != nil {
+		return err
+	}
+
+	err = s.DataRepo.SetFile(ctx, *data)
+	if err != nil {
+		internal.Logger.Errorw("error while updating data", "id", data.ID, "err", err)
+		return domain.ErrInternalServerError
+	}
 
 	return nil
 }

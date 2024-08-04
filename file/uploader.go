@@ -22,13 +22,14 @@ func NewUploader(savePath string) *Uploader {
 }
 
 func (u *Uploader) SetFile(fileName, path string) error {
-	err := os.MkdirAll(filepath.Dir(u.SavePath+"/"+path), os.ModePerm)
+	savePath := filepath.Join(u.SavePath, path)
+	err := os.MkdirAll(savePath, os.ModePerm)
 	if err != nil {
 		internal.Logger.Infow("err in create directory", "err", err)
 		return domain.ErrInternalServerError
 	}
 
-	u.FilePath = filepath.Join(path, fileName)
+	u.FilePath = filepath.Join(savePath, fileName)
 	file, err := os.Create(u.FilePath)
 	if err != nil {
 		internal.Logger.Infow("err in create file", "err", err)

@@ -11,13 +11,13 @@ import (
 
 type claims struct {
 	jwt.RegisteredClaims
-	UserID int64
+	UserID uint64
 }
 
 const tokenExp = time.Hour * 3
 const secretKey = "someSecretSuperKey"
 
-func BuildJWTString(userID int64) (string, error) {
+func BuildJWTString(userID uint64) (string, error) {
 	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -38,7 +38,7 @@ func BuildJWTString(userID int64) (string, error) {
 	return tokenString, nil
 }
 
-func GetUserID(tokenString string) (int64, error) {
+func GetUserID(tokenString string) (uint64, error) {
 	claims := &claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
@@ -49,14 +49,14 @@ func GetUserID(tokenString string) (int64, error) {
 		})
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenInvalidClaims) {
-			return -1, nil
+			return 0, nil
 		}
 		internal.Logger.Infow("error in parse token", "err", err)
-		return -1, err
+		return 0, err
 	}
 
 	if !token.Valid {
-		return -1, nil
+		return 0, nil
 	}
 
 	return claims.UserID, nil

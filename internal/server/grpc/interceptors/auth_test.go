@@ -34,7 +34,7 @@ func (t *TestServer) Test(ctx context.Context, res *emptypb.Empty) (*pb.TestResp
 func TestAuth(t *testing.T) {
 	internal.InitLogger()
 	var ctx context.Context
-	var userID int64 = 1
+	var userID uint64 = 1
 
 	token, err := auth.BuildJWTString(userID)
 	assert.NoError(t, err)

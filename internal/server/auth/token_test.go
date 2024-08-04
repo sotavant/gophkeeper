@@ -15,7 +15,8 @@ func TestBuildJWTString(t *testing.T) {
 }
 
 func TestGetUserID(t *testing.T) {
-	var id int64 = 3333
+	var got uint64
+	var id uint64 = 3333
 	internal.InitLogger()
 
 	token, err := BuildJWTString(id)
@@ -27,7 +28,7 @@ func TestGetUserID(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    int64
+		want    uint64
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
@@ -43,13 +44,13 @@ func TestGetUserID(t *testing.T) {
 			args: args{
 				tokenString: "sdfffff",
 			},
-			want:    -1,
+			want:    0,
 			wantErr: assert.Error,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetUserID(tt.args.tokenString)
+			got, err = GetUserID(tt.args.tokenString)
 			if !tt.wantErr(t, err, fmt.Sprintf("GetUserID(%v)", tt.args.tokenString)) {
 				return
 			}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"gophkeeper/data"
+	"gophkeeper/file"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server"
 	grpc2 "gophkeeper/internal/server/grpc"
@@ -76,10 +77,11 @@ func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 	}
 
 	userService := user.NewService(userRepo)
+	fileService := file.NewService(fileRepo)
 	dataService := data.NewService(dataRepo, fileRepo)
 
 	pb.RegisterUserServiceServer(s, grpc2.NewUserServer(userService))
-	pb.RegisterDataServiceServer(s, grpc2.NewDataServer(dataService, app.FilesSavePath))
+	pb.RegisterDataServiceServer(s, grpc2.NewDataServer(dataService, app.FilesSavePath, fileService))
 
 	return s
 }

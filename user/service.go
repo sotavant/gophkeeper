@@ -19,7 +19,7 @@ type Service struct {
 
 type Repository interface {
 	GetByLogin(ctx context.Context, login string) (domain.User, error)
-	Store(ctx context.Context, user domain.User) (int64, error)
+	Store(ctx context.Context, user domain.User) (uint64, error)
 }
 
 func NewService(u Repository) *Service {
