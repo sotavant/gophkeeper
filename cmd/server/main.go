@@ -5,6 +5,7 @@ import (
 	"gophkeeper/data"
 	"gophkeeper/file"
 	"gophkeeper/internal"
+	"gophkeeper/internal/crypto"
 	"gophkeeper/internal/server"
 	grpc2 "gophkeeper/internal/server/grpc"
 	"gophkeeper/internal/server/repository/pgsql"
@@ -57,9 +58,15 @@ func main() {
 
 func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 	var err error
+	var ch *crypto.Cipher
 	var interceptors []grpc.UnaryServerInterceptor
 
-	s := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptors...))
+	ch, err = crypto.NewCipher()
+	if err != nil {
+		internal.Logger.Fatalw("error initializing cipher", "err", err)
+	}
+
+	s := grpc.NewServer(grpc.Creds(ch.GetServerGRPCTransportCreds()), grpc.ChainUnaryInterceptor(interceptors...))
 
 	userRepo, err := pgsql.NewUserRepository(ctx, app.DBPool, pgsql.UsersTableName)
 	if err != nil {
