@@ -2,35 +2,27 @@ package view
 
 import (
 	"fmt"
+	"gophkeeper/client/user"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
-var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle
-	noStyle             = lipgloss.NewStyle()
-	helpStyle           = blurredStyle
-	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-
-	focusedButton = focusedStyle.Render("[ Submit ]")
-	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
+const (
+	loginPlaceholder    = "Nickname"
+	passwordPlaceholder = "Password"
 )
 
 type RegistrationModel struct {
 	focusIndex int
 	inputs     []textinput.Model
-	cursorMode cursor.Mode
+	msg        string
 }
 
 func initialRegistrationModel() RegistrationModel {
 	m := RegistrationModel{
-		inputs: make([]textinput.Model, 3),
+		inputs: make([]textinput.Model, 2),
 	}
 
 	var t textinput.Model
@@ -41,15 +33,12 @@ func initialRegistrationModel() RegistrationModel {
 
 		switch i {
 		case 0:
-			t.Placeholder = "Nickname"
+			t.Placeholder = loginPlaceholder
 			t.Focus()
 			t.PromptStyle = focusedStyle
 			t.TextStyle = focusedStyle
 		case 1:
-			t.Placeholder = "Email"
-			t.CharLimit = 64
-		case 2:
-			t.Placeholder = "Password"
+			t.Placeholder = passwordPlaceholder
 			t.EchoMode = textinput.EchoPassword
 			t.EchoCharacter = '•'
 		}
@@ -70,22 +59,10 @@ func (m RegistrationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
-		case "ctrl+m":
+		case "ctrl+w":
 			var cmd tea.Cmd
-			fmt.Println("lskdjf")
 			rm := RootModel{}
-			return rm, cmd
-		// Change cursor mode
-		case "ctrl+r":
-			m.cursorMode++
-			if m.cursorMode > cursor.CursorHide {
-				m.cursorMode = cursor.CursorBlink
-			}
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := range m.inputs {
-				cmds[i] = m.inputs[i].Cursor.SetMode(m.cursorMode)
-			}
-			return m, tea.Batch(cmds...)
+			return rm, tea.Batch(cmd, rm.Init())
 
 		// Set focus to next input
 		case "tab", "shift+tab", "enter", "up", "down":
@@ -94,7 +71,7 @@ func (m RegistrationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Did the user press enter while the submit button was focused?
 			// If so, exit.
 			if s == "enter" && m.focusIndex == len(m.inputs) {
-				return m, tea.Quit
+				return m.registrateUser(msg)
 			}
 
 			// Cycle indexes
@@ -135,6 +112,27 @@ func (m RegistrationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m RegistrationModel) registrateUser(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
+	var pass, login string
+
+	for _, v := range m.inputs {
+		switch v.Placeholder {
+		case loginPlaceholder:
+			login = v.Value()
+		case passwordPlaceholder:
+			pass = v.Value()
+		}
+	}
+
+	err := user.Registrate(login, pass)
+	if err != nil {
+		m.msg = getError(err)
+		return m, m.updateInputs(teaMsg)
+	}
+
+	return m, tea.Quit
+}
+
 func (m *RegistrationModel) updateInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
@@ -163,10 +161,7 @@ func (m RegistrationModel) View() string {
 	}
 	fmt.Fprintf(&b, "\n\n%s\n\n", *button)
 
-	b.WriteString(helpStyle.Render("cursor mode is "))
-	b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
-	b.WriteString(helpStyle.Render(" (ctrl+r to change style)\n"))
-	b.WriteString(helpStyle.Render("'ctrl+m' to main window\n\n"))
+	b.WriteString(helpStyle.Render("'ctrl+w' to main window\n'ctrl-c' to quit"))
 
 	return b.String()
 }

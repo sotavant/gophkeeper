@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"gophkeeper/internal/agent/view"
+	"gophkeeper/internal/client/view"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
