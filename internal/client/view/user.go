@@ -50,7 +50,7 @@ func (m UserModel) Do() (tea.Model, tea.Cmd) {
 
 	switch m.cursor {
 	case ProgramInfoChoice:
-		m.msg = fmt.Sprintf("Build date: %s; Build Version: %s")
+		m.msg = fmt.Sprintf("Build date: %s; Build Version: %s", "", "")
 	case RegistrationChoice:
 		return initialRegistrationModel(), cmd
 	}

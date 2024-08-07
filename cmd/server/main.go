@@ -61,7 +61,7 @@ func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 	var ch *crypto.Cipher
 	var interceptors []grpc.UnaryServerInterceptor
 
-	ch, err = crypto.NewCipher()
+	ch, err = crypto.NewCipher(app.CryptoKeysPath)
 	if err != nil {
 		internal.Logger.Fatalw("error initializing cipher", "err", err)
 	}

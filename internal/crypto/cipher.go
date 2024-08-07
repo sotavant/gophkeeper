@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"gophkeeper/internal"
 	"os"
+	"path/filepath"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +19,8 @@ const (
 	certPath       = "cert.pem"
 )
 
+var rootDir string
+
 type Cipher struct {
 	privateKey     *rsa.PrivateKey
 	publicKey      *rsa.PublicKey
@@ -25,13 +28,17 @@ type Cipher struct {
 	privateKeyPath string
 }
 
-func NewCipher() (*Cipher, error) {
-	privKey, err := getPrivKey(privateKeyPath)
+func NewCipher(keysPath string) (*Cipher, error) {
+	privKeyFullPath := filepath.Join(keysPath, privateKeyPath)
+	pubKeyFullPath := filepath.Join(keysPath, publicKeyPath)
+	certFullPath := filepath.Join(keysPath, certPath)
+
+	privKey, err := getPrivKey(privKeyFullPath)
 	if err != nil {
 		return nil, err
 	}
 
-	pubKey, err := getPubKey(publicKeyPath)
+	pubKey, err := getPubKey(pubKeyFullPath)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +46,8 @@ func NewCipher() (*Cipher, error) {
 	return &Cipher{
 		privateKey:     privKey,
 		publicKey:      pubKey,
-		certPath:       certPath,
-		privateKeyPath: privateKeyPath,
+		certPath:       certFullPath,
+		privateKeyPath: privKeyFullPath,
 	}, nil
 }
 

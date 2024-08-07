@@ -6,8 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const cryptKeysPath = "/Users/fanishadeev/GolandProjects/gophkeeper/internal/crypto"
+
 func TestCipher_Encrypt(t *testing.T) {
-	c, err := NewCipher()
+	c, err := NewCipher(cryptKeysPath)
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 

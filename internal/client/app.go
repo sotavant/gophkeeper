@@ -8,6 +8,7 @@ import (
 	"gophkeeper/internal/crypto"
 	pb "gophkeeper/proto"
 	"os"
+	"path/filepath"
 
 	"google.golang.org/grpc"
 )
@@ -33,7 +34,7 @@ func InitApp() error {
 	}
 
 	AppInstance = &App{}
-	err = initGRPCUserClient(c.address)
+	err = initGRPCUserClient(c)
 	if err != nil {
 		return err
 	}
@@ -41,13 +42,13 @@ func InitApp() error {
 	return nil
 }
 
-func initGRPCUserClient(serverAddr string) error {
-	ch, err := crypto.NewCipher()
+func initGRPCUserClient(cnf *config) error {
+	ch, err := crypto.NewCipher(cnf.cryptoKeysPath)
 	if err != nil {
 		internal.Logger.Fatalw("failed to init crypto cipher", "error", err)
 	}
 
-	conn, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(ch.GetClientGRPCTransportCreds()))
+	conn, err := grpc.NewClient(cnf.address, grpc.WithTransportCredentials(ch.GetClientGRPCTransportCreds()))
 	if err != nil {
 		internal.Logger.Fatalw("failed to create grpc client", "error", err)
 	}
@@ -59,20 +60,31 @@ func initGRPCUserClient(serverAddr string) error {
 }
 
 type config struct {
-	address string
+	address,
+	cryptoKeysPath string
 }
 
 const serverAddressVAr = "SERVER_ADDRESS"
+const cryptoKeysPath = "CRYPTO_KEYS_PATH"
 
 func initConfig() *config {
 	c := new(config)
 
 	flag.StringVar(&c.address, "a", "", "server address")
+	flag.StringVar(&c.cryptoKeysPath, "c", "", "crypto keys path")
 
 	flag.Parse()
 
 	if envVar := os.Getenv(serverAddressVAr); envVar != "" {
 		c.address = envVar
+	}
+
+	if envVar := os.Getenv(cryptoKeysPath); envVar != "" {
+		c.cryptoKeysPath = envVar
+	}
+
+	if c.cryptoKeysPath != "" {
+		c.cryptoKeysPath = filepath.FromSlash(c.cryptoKeysPath)
 	}
 
 	return c
