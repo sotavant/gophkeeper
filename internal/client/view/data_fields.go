@@ -86,7 +86,7 @@ func InitDataFieldsModel(data domain.Data) DataFieldsModel {
 			t.SetValue(data.CardNum)
 		case fileFieldKey:
 			t.CharLimit = 200
-			t.SetValue(data.FileName)
+			t.SetValue(data.FilePath)
 		case loginFieldKey:
 			t.SetValue(data.Login)
 		}
@@ -254,7 +254,7 @@ func (m DataFieldsModel) getData() domain.Data {
 		case cardNumFieldKey:
 			m.data.CardNum = v.Value()
 		case fileFieldKey:
-			m.data.FileName = strings.TrimSpace(v.Value())
+			m.data.FilePath = strings.TrimSpace(v.Value())
 		}
 	}
 

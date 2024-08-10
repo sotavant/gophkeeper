@@ -7,6 +7,7 @@ type Data struct {
 	Pass,
 	CardNum,
 	Text,
+	FilePath,
 	FileName,
 	Login,
 	Meta string

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"gophkeeper/client/domain"
-	"gophkeeper/internal"
 	"os"
 	"strings"
 	"unicode/utf8"
@@ -20,7 +19,7 @@ func showData(d domain.Data) string {
 	res += fmt.Sprintf("%-17s:  %s\n", loginFieldName, d.Login)
 	res += fmt.Sprintf("%-17s:  %s\n", passFieldName, strings.Repeat("*", utf8.RuneCountInString(d.Pass)))
 	res += fmt.Sprintf("%-17s:  %s\n", cardNumFieldName, d.CardNum)
-	res += fmt.Sprintf("%-17s:  %s\n", fileFieldName, d.FileName)
+	res += fmt.Sprintf("%-17s:  %s\n", fileFieldName, d.FilePath)
 
 	return res
 }
@@ -30,11 +29,10 @@ func saveData(d domain.Data) (uint64, error) {
 		return 0, errors.New("name is required")
 	}
 
-	if d.FileName != "" {
-		if _, err := os.Stat(d.FileName); errors.Is(err, os.ErrNotExist) {
+	if d.FilePath != "" {
+		if _, err := os.Stat(d.FilePath); errors.Is(err, os.ErrNotExist) {
 			return 0, errors.New("file does not exist")
 		}
 	}
-	internal.Logger.Info("saving data...")
-	return 10, nil
+
 }
