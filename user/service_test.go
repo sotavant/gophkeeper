@@ -112,7 +112,7 @@ func TestService_Auth(t *testing.T) {
 		Password: "testtest",
 	}
 
-	hashedPass, err := hashPassword(user.Password)
+	hashedPass, err := HashPassword(user.Password)
 	assert.NoError(t, err)
 	storedUser := domain.User{
 		Login:    user.Login,

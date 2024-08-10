@@ -18,7 +18,6 @@ var choices = map[int]string{
 	RegistrationChoice: "Registration",
 	LoginChoice:        "Login",
 }
-var choice string
 
 type RootModel struct {
 	cursor       int
@@ -65,7 +64,9 @@ func (m RootModel) Do() (tea.Model, tea.Cmd) {
 	case ProgramInfoChoice:
 		m.msg = fmt.Sprintf("Build date: %s; Build Version: %s", m.BuildDate, m.BuildVersion)
 	case RegistrationChoice:
-		return initialRegistrationModel(), cmd
+		return initAuthModel(false), cmd
+	case LoginChoice:
+		return initAuthModel(true), cmd
 	}
 
 	return m, tea.Batch(cmd, m.Init())

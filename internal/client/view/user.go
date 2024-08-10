@@ -3,11 +3,23 @@ package view
 import (
 	"errors"
 	"fmt"
+	"gophkeeper/client/domain"
+	"gophkeeper/client/user"
 	"gophkeeper/internal/client"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+const (
+	DataListChoice = 0
+	AddDataChoice  = 1
+)
+
+var userModelChoices = map[int]string{
+	DataListChoice: "Get data list",
+	AddDataChoice:  "Add data",
+}
 
 type UserModel struct {
 	cursor int
@@ -25,19 +37,26 @@ func (m UserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
+		case "ctrl+w":
+			var cmd tea.Cmd
+			rm := RootModel{}
+
+			user.ResetUser()
+
+			return rm, tea.Batch(cmd, rm.Init())
 		case "enter":
 			//var cmd tea.Cmd
 			// Send the choice on the channel and exit.
 			return m.Do()
 		case "down", "j":
 			m.cursor++
-			if m.cursor >= len(choices) {
+			if m.cursor >= len(userModelChoices) {
 				m.cursor = 0
 			}
 		case "up", "k":
 			m.cursor--
 			if m.cursor < 0 {
-				m.cursor = len(choices) - 1
+				m.cursor = len(userModelChoices) - 1
 			}
 		}
 	}
@@ -49,10 +68,11 @@ func (m UserModel) Do() (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch m.cursor {
-	case ProgramInfoChoice:
-		m.msg = fmt.Sprintf("Build date: %s; Build Version: %s", "", "")
-	case RegistrationChoice:
-		return initialRegistrationModel(), cmd
+	case DataListChoice:
+		return initDataListModel(), cmd
+	case AddDataChoice:
+		var data domain.Data
+		return InitDataFieldsModel(data), cmd
 	}
 
 	return m, tea.Batch(cmd, m.Init())
@@ -71,15 +91,15 @@ func (m UserModel) View() string {
 		s.WriteString(infoStyle.Render(m.msg) + "\n\n")
 	}
 
-	s.WriteString("What you want?\n\n")
+	s.WriteString("What you want to do?\n\n")
 
-	for i := 0; i < len(choices); i++ {
+	for i := 0; i < len(userModelChoices); i++ {
 		if m.cursor == i {
 			s.WriteString("(•) ")
 		} else {
 			s.WriteString("( ) ")
 		}
-		s.WriteString(choices[i])
+		s.WriteString(userModelChoices[i])
 		s.WriteString("\n")
 	}
 	s.WriteString("\n(press q to quit)\n")

@@ -39,7 +39,7 @@ func (u *Service) Register(ctx context.Context, user domain.User) (string, error
 		return "", domain.ErrLoginExist
 	}
 
-	user.Password, err = hashPassword(user.Password)
+	user.Password, err = HashPassword(user.Password)
 	if err != nil {
 		internal.Logger.Infow("error in crypt passwd", "err", err)
 		return "", domain.ErrInternalServerError
@@ -90,7 +90,7 @@ func (u *Service) Login(ctx context.Context, user domain.User) (string, error) {
 	return token, nil
 }
 
-func hashPassword(password string) (string, error) {
+func HashPassword(password string) (string, error) {
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err

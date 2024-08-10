@@ -43,3 +43,28 @@ func (c *UserClient) Registration(login, password string) (token string, err err
 
 	return response.Token, nil
 }
+
+func (c *UserClient) Login(login, password string) (token string, err error) {
+	var response *pb.RegisterResponse
+
+	response, err = c.client.Login(context.Background(), &pb.RegisterRequest{
+		User: &pb.User{
+			Login:    login,
+			Password: password,
+		},
+	})
+
+	if err != nil {
+		if status.Code(err) == codes.Internal {
+			return "", domain.ErrRegisterRequest
+		}
+
+		return "", err
+	}
+
+	if len(response.Token) == 0 {
+		return "", domain.ErrRegisterRequest
+	}
+
+	return response.Token, nil
+}

@@ -9,20 +9,17 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const (
-	loginPlaceholder    = "Nickname"
-	passwordPlaceholder = "Password"
-)
-
-type RegistrationModel struct {
-	focusIndex int
-	inputs     []textinput.Model
-	msg        string
+type AuthModel struct {
+	focusIndex    int
+	inputs        []textinput.Model
+	msg           string
+	isLoginAction bool
 }
 
-func initialRegistrationModel() RegistrationModel {
-	m := RegistrationModel{
-		inputs: make([]textinput.Model, 2),
+func initAuthModel(isLoginAction bool) AuthModel {
+	m := AuthModel{
+		inputs:        make([]textinput.Model, 2),
+		isLoginAction: isLoginAction,
 	}
 
 	var t textinput.Model
@@ -38,7 +35,7 @@ func initialRegistrationModel() RegistrationModel {
 			t.PromptStyle = focusedStyle
 			t.TextStyle = focusedStyle
 		case 1:
-			t.Placeholder = passwordPlaceholder
+			t.Placeholder = PasswordPlaceholder
 			t.EchoMode = textinput.EchoPassword
 			t.EchoCharacter = '•'
 		}
@@ -49,11 +46,11 @@ func initialRegistrationModel() RegistrationModel {
 	return m
 }
 
-func (m RegistrationModel) Init() tea.Cmd {
+func (m AuthModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m RegistrationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m AuthModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -112,28 +109,32 @@ func (m RegistrationModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m RegistrationModel) registrateUser(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
+func (m AuthModel) registrateUser(teaMsg tea.Msg) (tea.Model, tea.Cmd) {
 	var pass, login string
+	var userModel UserModel
 
 	for _, v := range m.inputs {
 		switch v.Placeholder {
 		case loginPlaceholder:
 			login = v.Value()
-		case passwordPlaceholder:
+		case PasswordPlaceholder:
 			pass = v.Value()
 		}
 	}
 
-	err := user.Registrate(login, pass)
+	err := user.Auth(login, pass, m.isLoginAction)
+
 	if err != nil {
 		m.msg = getError(err)
 		return m, m.updateInputs(teaMsg)
 	}
 
-	return m, tea.Quit
+	var cmd tea.Cmd
+
+	return userModel, cmd
 }
 
-func (m *RegistrationModel) updateInputs(msg tea.Msg) tea.Cmd {
+func (m *AuthModel) updateInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.inputs))
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply
@@ -145,8 +146,12 @@ func (m *RegistrationModel) updateInputs(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (m RegistrationModel) View() string {
+func (m AuthModel) View() string {
 	var b strings.Builder
+
+	if len(m.msg) > 0 {
+		b.WriteString(errorStyle.Render(m.msg) + "\n\n")
+	}
 
 	for i := range m.inputs {
 		b.WriteString(m.inputs[i].View())

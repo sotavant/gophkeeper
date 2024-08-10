@@ -16,7 +16,9 @@ import (
 type AppUser struct {
 	Token,
 	Login string
+	StorageKey []byte
 }
+
 type App struct {
 	UserClient *g.UserClient
 	User       AppUser
