@@ -6,7 +6,11 @@ import (
 	clientDomain "gophkeeper/client/domain"
 	"gophkeeper/internal"
 	pb "gophkeeper/proto"
+	"io"
+	"os"
+	"path/filepath"
 
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -54,4 +58,49 @@ func (c *DataClient) SaveData(ctx context.Context, data *clientDomain.Data) erro
 	data.Version = resp.GetDataVersion()
 
 	return nil
+}
+
+func (c *DataClient) UploadFile(ctx context.Context, data *clientDomain.Data, encryptedFilePath string) error {
+	buf := make([]byte, 1024)
+
+	uploadedFile, err := os.Open(encryptedFilePath)
+	if err != nil {
+		internal.Logger.Errorw("error while opening encrypted file", "error", err)
+		return clientDomain.ErrUploadFile
+	}
+
+	for {
+		var num int
+		num, err = uploadedFile.Read(buf)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			internal.Logger.Errorw("error while read encrypted file", "error", err)
+			return clientDomain.ErrUploadFile
+		}
+
+		chunk := buf[:num]
+		err = stream.Send(&pb.UploadFileRequest{
+			DataId:      dData.ID,
+			DataVersion: dData.Version,
+			FileName:    filepath.Base(uploadedFile.Name()),
+			FileChunk:   chunk,
+		})
+
+		assert.NoError(t, err)
+	}
+	batchNum += 1
+
+	_, err = stream.CloseAndRecv()
+	assert.NoError(t, err)
+
+	uploadedFilePath := filepath.Join("/tmp/uploaded", uploadedFile.GetSaveFileSubDir(dData), filepath.Base(tmpFile.Name()))
+	if _, err = os.Stat(uploadedFilePath); err != nil {
+		assert.NoError(t, err)
+	}
+
+	err = os.Remove(uploadedFilePath)
+	assert.NoError(t, err)
 }

@@ -1,12 +1,9 @@
 package user
 
 import (
-	"crypto/sha1"
 	"gophkeeper/client/domain"
 	"gophkeeper/internal/client"
 	"unicode/utf8"
-
-	"golang.org/x/crypto/pbkdf2"
 )
 
 const (
@@ -35,7 +32,7 @@ func Auth(login, pass string, isLogin bool) error {
 
 	client.AppInstance.User.Token = token
 	client.AppInstance.User.Login = login
-	client.AppInstance.User.StorageKey = pbkdf2.Key([]byte(pass), []byte(login), 4096, 32, sha1.New)
+	client.AppInstance.SetStorageKey(login, pass)
 
 	return nil
 }

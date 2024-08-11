@@ -12,7 +12,4 @@ https://dev.to/dimk00z/grpc-file-transfer-with-go-1nb2
 cobra/bubble tea
 
 # questions
-1. Шифрование: на клиенте
-2. Клиент и Сервер в одном репозитории: да 
-3. tls, зашивать сертификат в репозиторий? (https://dev.to/techschoolguru/how-to-secure-grpc-connection-with-ssl-tls-in-go-4ph): да
-4. Авторизация, токен в cli: см. раздел "cli"
+1. meta
