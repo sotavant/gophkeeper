@@ -19,6 +19,7 @@ func NewUserClient(client pb.UserServiceClient) *UserClient {
 	}
 }
 
+// Registration регистрация пользователя
 func (c *UserClient) Registration(login, password string) (token string, err error) {
 	var response *pb.RegisterResponse
 
@@ -44,6 +45,7 @@ func (c *UserClient) Registration(login, password string) (token string, err err
 	return response.Token, nil
 }
 
+// Login авторизация пользователя
 func (c *UserClient) Login(login, password string) (token string, err error) {
 	var response *pb.RegisterResponse
 

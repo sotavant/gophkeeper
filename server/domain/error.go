@@ -2,6 +2,7 @@ package domain
 
 import "errors"
 
+// Описание ошибок сервера
 var (
 	ErrInternalServerError = errors.New("internal Server Error")
 	ErrLoginExist          = errors.New("login is busy")

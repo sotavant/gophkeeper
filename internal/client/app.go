@@ -1,3 +1,4 @@
+// Package client пакет представляющие клиентское приложение
 package client
 
 import (
@@ -17,12 +18,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+// AppUser структура для хранения данных авторизованного пользователя
 type AppUser struct {
 	Token,
 	Login string
 	StorageKey []byte
 }
 
+// App структрура хранящия данные приложения
 type App struct {
 	UserClient    *g.UserClient
 	DataClient    *g.DataClient
@@ -55,6 +58,7 @@ func InitApp() error {
 	return nil
 }
 
+// SetStorageKey сохранение ключа для шифровки/расшифровки данных
 func (a *App) SetStorageKey(login, pass string) {
 	a.User.StorageKey = pbkdf2.Key([]byte(pass), []byte(login), 4096, 32, sha1.New)
 }

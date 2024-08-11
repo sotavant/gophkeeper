@@ -1,3 +1,4 @@
+// Package user пакет с методами, которые связаны с аутентификацей пользователя
 package user
 
 import (
@@ -6,6 +7,7 @@ import (
 	"unicode/utf8"
 )
 
+// Ограничения на длину пароля и логина
 const (
 	PasswordMinLen = 6
 	LoginMinLen    = 2
@@ -13,6 +15,7 @@ const (
 
 type Service struct{}
 
+// Auth метода для регистрации/авторизации пользователя
 func Auth(login, pass string, isLogin bool) error {
 	var token string
 
@@ -37,6 +40,7 @@ func Auth(login, pass string, isLogin bool) error {
 	return nil
 }
 
+// ResetUser сброс данных пользователя после деавторизации
 func ResetUser() {
 	client.AppInstance.User.Login = ""
 	client.AppInstance.User.Token = ""

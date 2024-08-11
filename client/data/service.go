@@ -1,3 +1,4 @@
+// Package data пакет служит для взаимодействия cli приложение с сервером
 package data
 
 import (
@@ -14,6 +15,9 @@ import (
 	"strconv"
 )
 
+// SaveData сохранение данных на сервере
+// Если в данных имеется файл, то дополнительным запросом происходит его сохранение
+// На сервер отправляются зашифрованне паролем пользователя данные
 func SaveData(data domain.Data) (domain.Data, error) {
 	var encryptedFilePath string
 
@@ -53,6 +57,8 @@ func SaveData(data domain.Data) (domain.Data, error) {
 	return data, nil
 }
 
+// GetData получение данных с сервера
+// после получения, данные раскодируются паролем пользователя
 func GetData(id uint64) (*domain.Data, error) {
 	var err error
 	data, ok := client.AppInstance.DecryptedData[id]
@@ -77,6 +83,7 @@ func GetData(id uint64) (*domain.Data, error) {
 	return &data, nil
 }
 
+// GetDataList получить список данных пользователя в кратком формате (ID, Name)
 func GetDataList() ([]domain2.DataName, error) {
 	ctx := context.WithValue(context.Background(), interceptors.ContextUserTokenKey{}, client.AppInstance.User.Token)
 
@@ -88,6 +95,8 @@ func GetDataList() ([]domain2.DataName, error) {
 	return list, nil
 }
 
+// DownloadFile скачать файл пользователя с сервера
+// после скачивания файл раскодируется
 func DownloadFile(data domain.Data) (string, error) {
 	ctx := context.WithValue(context.Background(), interceptors.ContextUserTokenKey{}, client.AppInstance.User.Token)
 
@@ -105,6 +114,7 @@ func DownloadFile(data domain.Data) (string, error) {
 	return decryptFile(tmpFilePath, filepath.Join(dataSavePath, data.FileName))
 }
 
+// DeleteData удалить данные
 func DeleteData(id uint64) error {
 	ctx := context.WithValue(context.Background(), interceptors.ContextUserTokenKey{}, client.AppInstance.User.Token)
 	err := client.AppInstance.DataClient.DeleteData(ctx, id)

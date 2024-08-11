@@ -1,6 +1,6 @@
 package view
 
-// View for add text data
+// View for add meta data
 
 import (
 	"encoding/json"
@@ -19,6 +19,7 @@ type (
 	errMsg error
 )
 
+// dataMetaModel модель для добавления метаданных
 type dataMetaModel struct {
 	textarea textarea.Model
 	err      error

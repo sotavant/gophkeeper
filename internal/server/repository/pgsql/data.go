@@ -1,3 +1,4 @@
+// Package pgsql пакет для взаимодействия сервера с базой данной
 package pgsql
 
 import (
@@ -31,6 +32,7 @@ func NewDataRepository(ctx context.Context, pool *pgxpool.Pool, tableName, fileT
 	}, nil
 }
 
+// Insert добавление новой записи
 func (d *DataRepository) Insert(ctx context.Context, data *domain.Data) error {
 	query := d.setTableName(`insert into #T# (name, uid, login, pass, text, card_num, meta, version, file_id) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`)
 
@@ -42,6 +44,7 @@ func (d *DataRepository) Insert(ctx context.Context, data *domain.Data) error {
 	return nil
 }
 
+// Update обновление записи
 func (d *DataRepository) Update(ctx context.Context, data domain.Data) error {
 	query := d.setTableName(`update #T# set
 		name = $1, 
@@ -63,6 +66,7 @@ func (d *DataRepository) Update(ctx context.Context, data domain.Data) error {
 	return nil
 }
 
+// SetFile добавление файла
 func (d *DataRepository) SetFile(ctx context.Context, data domain.Data) error {
 	query := d.setTableName(`update #T# set
 		file_id = $1,
@@ -79,6 +83,7 @@ func (d *DataRepository) SetFile(ctx context.Context, data domain.Data) error {
 	return nil
 }
 
+// GetByNameAndUserID получить запись по названию и ИД пользователя
 func (d *DataRepository) GetByNameAndUserID(ctx context.Context, uid uint64, name string) (uint64, error) {
 	query := d.setTableName(`select * from #T# where uid = $1 and name = $2`)
 
@@ -90,6 +95,7 @@ func (d *DataRepository) GetByNameAndUserID(ctx context.Context, uid uint64, nam
 	return data.ID, nil
 }
 
+// Get получить запись из БД по ИД
 func (d *DataRepository) Get(ctx context.Context, id uint64) (*domain.Data, error) {
 	query := d.setTableName(`select * from #T# where id = $1`)
 
@@ -105,6 +111,7 @@ func (d *DataRepository) Get(ctx context.Context, id uint64) (*domain.Data, erro
 	return &row, nil
 }
 
+// GetByUser получить запись по ИД для пользователя
 func (d *DataRepository) GetByUser(ctx context.Context, id, uid uint64) (*domain.Data, error) {
 	query := d.setTableName(`select * from #T# where id = $1 and uid = $2`)
 
@@ -120,6 +127,7 @@ func (d *DataRepository) GetByUser(ctx context.Context, id, uid uint64) (*domain
 	return &row, nil
 }
 
+// GetList получить список для пользователя
 func (d *DataRepository) GetList(ctx context.Context, uid uint64) ([]domain.DataName, error) {
 	var res []domain.DataName
 
@@ -138,6 +146,7 @@ func (d *DataRepository) GetList(ctx context.Context, uid uint64) ([]domain.Data
 	return res, nil
 }
 
+// Delete удалить запись
 func (d *DataRepository) Delete(ctx context.Context, id uint64) error {
 	query := d.setTableName(`delete from #T# where id = $1`)
 	_, err := d.DBPoll.Exec(ctx, query, id)

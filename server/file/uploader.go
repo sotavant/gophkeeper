@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 )
 
+// Uploader вспомогательная структура, позволяющая сохранять файл в файловой структуре
 type Uploader struct {
 	FilePath   string
 	buffer     *bytes.Buffer
@@ -21,6 +22,7 @@ func NewUploader(savePath string) *Uploader {
 	}
 }
 
+// SetFile создает файл для записи
 func (u *Uploader) SetFile(fileName, path string) error {
 	savePath := filepath.Join(u.SavePath, path)
 	err := os.MkdirAll(savePath, os.ModePerm)
@@ -40,6 +42,7 @@ func (u *Uploader) SetFile(fileName, path string) error {
 	return nil
 }
 
+// Write запись данных в файл
 func (u *Uploader) Write(chunk []byte) error {
 	if u.OutputFile == nil {
 		return nil
@@ -49,6 +52,7 @@ func (u *Uploader) Write(chunk []byte) error {
 	return err
 }
 
+// Close закрыть файл
 func (u *Uploader) Close() error {
 	if u.OutputFile != nil {
 		return u.OutputFile.Close()

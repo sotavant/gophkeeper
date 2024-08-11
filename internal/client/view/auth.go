@@ -1,3 +1,4 @@
+// Package view в данном пакете представлены файлы представления cli приложения
 package view
 
 import (
@@ -9,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// AuthModel структура описывающие модель Авторизации/Регистрации
 type AuthModel struct {
 	focusIndex    int
 	inputs        []textinput.Model
@@ -46,10 +48,12 @@ func initAuthModel(isLoginAction bool) AuthModel {
 	return m
 }
 
+// Init иницилизация модели
 func (m AuthModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// Update действия на нажатия клавиш, комбинаций
 func (m AuthModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -146,6 +150,7 @@ func (m *AuthModel) updateInputs(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
+// View функция отвечающая за непосредственное отображение пользвателю
 func (m AuthModel) View() string {
 	var b strings.Builder
 

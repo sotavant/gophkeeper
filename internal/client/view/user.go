@@ -21,6 +21,8 @@ var userModelChoices = map[int]string{
 	AddDataChoice:  "Add data",
 }
 
+// UserModel модель для авторизованного пользователя
+// позволяет перейти к списку данных, либо в форму добавления
 type UserModel struct {
 	cursor int
 	choice string

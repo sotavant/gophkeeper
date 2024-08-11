@@ -1,3 +1,4 @@
+// Package grpc пакет для взаимодействия с сервером
 package grpc
 
 import (
@@ -26,6 +27,7 @@ func NewDataClient(client pb.DataServiceClient) *DataClient {
 	}
 }
 
+// Get получение данных по ID
 func (c *DataClient) Get(ctx context.Context, id uint64) (*clientDomain.Data, error) {
 	req := &pb.GetDataRequest{Id: id}
 
@@ -57,6 +59,7 @@ func (c *DataClient) Get(ctx context.Context, id uint64) (*clientDomain.Data, er
 	return data, nil
 }
 
+// GetList получения списка данных пользователя
 func (c *DataClient) GetList(ctx context.Context) ([]domain2.DataName, error) {
 	resp, err := c.client.GetDataList(ctx, &emptypb.Empty{})
 
@@ -83,6 +86,7 @@ func (c *DataClient) GetList(ctx context.Context) ([]domain2.DataName, error) {
 	return dataList, nil
 }
 
+// SaveData сохранение данных
 func (c *DataClient) SaveData(ctx context.Context, data *clientDomain.Data) error {
 	pbData := &pb.Data{
 		Id:      data.ID,
@@ -118,6 +122,7 @@ func (c *DataClient) SaveData(ctx context.Context, data *clientDomain.Data) erro
 	return nil
 }
 
+// UploadFile загрузка файла на сервер
 func (c *DataClient) UploadFile(ctx context.Context, data *clientDomain.Data, encryptedFilePath, fileName string) error {
 	var resp *pb.FileUploadResponse
 	buf := make([]byte, 1024)
@@ -173,6 +178,7 @@ func (c *DataClient) UploadFile(ctx context.Context, data *clientDomain.Data, en
 	return nil
 }
 
+// DownloadFile скачать файл
 func (c *DataClient) DownloadFile(ctx context.Context, data clientDomain.Data, filePath, fileName string) (string, error) {
 	var rr *pb.DownloadFileResponse
 
@@ -233,6 +239,7 @@ func (c *DataClient) DownloadFile(ctx context.Context, data clientDomain.Data, f
 	return file.FilePath, nil
 }
 
+// DeleteData удалить данные
 func (c *DataClient) DeleteData(ctx context.Context, id uint64) error {
 	resp := &pb.DeleteDataRequest{Id: id}
 

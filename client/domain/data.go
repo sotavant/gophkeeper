@@ -1,3 +1,4 @@
+// Package domain в данном пакете представлены модели данных
 package domain
 
 type Data struct {

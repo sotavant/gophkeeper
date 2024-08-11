@@ -20,6 +20,7 @@ type dataTextModel struct {
 	msg      string
 }
 
+// InitDataTextModel модель для добавления текстовых данных
 func InitDataTextModel(d domain.Data) dataTextModel {
 	ti := textarea.New()
 	ti.Placeholder = "Add your text..."

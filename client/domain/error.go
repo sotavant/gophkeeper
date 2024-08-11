@@ -2,6 +2,7 @@ package domain
 
 import "errors"
 
+// Описание ошибок в понятном для пользователя виде
 var (
 	ErrRegisterDataLength     = errors.New("login or password too short")
 	ErrSomethingWrong         = errors.New("something wrong")

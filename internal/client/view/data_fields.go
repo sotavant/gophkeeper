@@ -48,6 +48,8 @@ var dataFields = []field{
 	},
 }
 
+// DataFieldsModel структура описывающая модель редактирование текстовых полей
+// В данном отображение также возможно скачать файли и удалить данные
 type DataFieldsModel struct {
 	focusIndex int
 	inputs     []textinput.Model
@@ -56,6 +58,8 @@ type DataFieldsModel struct {
 	data       domain.Data
 }
 
+// InitDataFieldsModel инициализация модели
+// Если это добавление - то инициализация с пустыми полями, иначе редактирование полей
 func InitDataFieldsModel(data domain.Data) DataFieldsModel {
 	m := DataFieldsModel{
 		inputs: make([]textinput.Model, len(dataFields)),
@@ -99,6 +103,7 @@ func InitDataFieldsModel(data domain.Data) DataFieldsModel {
 	return m
 }
 
+// Init инициализация
 func (m DataFieldsModel) Init() tea.Cmd {
 	return textinput.Blink
 }

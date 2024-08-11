@@ -1,3 +1,4 @@
+// Package test вспомогательный пакет для тестирования
 package test
 
 import (

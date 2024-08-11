@@ -13,6 +13,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// DataListModel модель для отображения списка данных пользователя
+// позволяет выбрать данные и перейти к редактированию
 type DataListModel struct {
 	cursor   int
 	choice   string
@@ -74,6 +76,7 @@ func (m DataListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// Do переход к редактирование данных
 func (m DataListModel) Do() (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 

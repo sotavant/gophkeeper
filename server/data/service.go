@@ -1,3 +1,4 @@
+// Package data пакет для взаимодействия запросов grpc и базой данных
 package data
 
 import (
@@ -13,6 +14,7 @@ type Service struct {
 	FileRepo FileRepository
 }
 
+// Repository интерфейс для описания методов хранилища данных
 type Repository interface {
 	Insert(ctx context.Context, data *domain2.Data) error
 	Update(ctx context.Context, data domain2.Data) error
@@ -24,6 +26,7 @@ type Repository interface {
 	Delete(ctx context.Context, id uint64) error
 }
 
+// FileRepository интерфейс для описания методов файлового хранилища
 type FileRepository interface {
 	Get(ctx context.Context, id uint64) (*domain2.File, error)
 }
@@ -35,6 +38,7 @@ func NewService(d Repository, fileRepo FileRepository) *Service {
 	}
 }
 
+// UpsertData добавление или сохраненение (если есть ИД) данных
 func (s Service) UpsertData(ctx context.Context, data *domain2.Data) error {
 	if data.ID == 0 {
 		uniq, err := s.checkName(ctx, data, nil)
@@ -86,10 +90,7 @@ func (s Service) UpsertData(ctx context.Context, data *domain2.Data) error {
 	return nil
 }
 
-// check data isset and for correct user
-// if isset fileId check it equal to database.data.fileId
-// if isset fileId check exist
-// check data version
+// CheckUploadFileData проверка что файл принадлежит данному пользователя
 func (s Service) CheckUploadFileData(ctx context.Context, data domain2.Data) error {
 	d, err := s.DataRepo.Get(ctx, data.ID)
 	if err != nil {
@@ -115,8 +116,7 @@ func (s Service) CheckUploadFileData(ctx context.Context, data domain2.Data) err
 	return nil
 }
 
-// if data.fileId - remove old file and update row
-// if new file - save file, and save data
+// SaveDataFile сохранить файл в базу данных
 func (s Service) SaveDataFile(ctx context.Context, data *domain2.Data, filePath string, f file.Service) error {
 	dFile := domain2.File{
 		Name: filepath.Base(filePath),
@@ -150,6 +150,7 @@ func (s Service) SaveDataFile(ctx context.Context, data *domain2.Data, filePath 
 	return nil
 }
 
+// GetList получить список данных из базы данных
 func (s Service) GetList(ctx context.Context, uid uint64) (list []domain2.DataName, err error) {
 	list, err = s.DataRepo.GetList(ctx, uid)
 	if err != nil {
@@ -160,6 +161,7 @@ func (s Service) GetList(ctx context.Context, uid uint64) (list []domain2.DataNa
 	return
 }
 
+// Get получить запись из базы данных
 func (s Service) Get(ctx context.Context, dataID uint64, uid uint64) (data *domain2.Data, err error) {
 	data, err = s.DataRepo.GetByUser(ctx, dataID, uid)
 	if err != nil {
@@ -174,6 +176,7 @@ func (s Service) Get(ctx context.Context, dataID uint64, uid uint64) (data *doma
 	return
 }
 
+// Delete удалить запись из базы данных
 func (s Service) Delete(ctx context.Context, dataID, uid uint64, fs file.Service) error {
 	data, err := s.DataRepo.GetByUser(ctx, dataID, uid)
 	if err != nil {

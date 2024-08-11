@@ -1,3 +1,4 @@
+// Package interceptors пакет для модификации данных запроса к серверу
 package interceptors
 
 import (

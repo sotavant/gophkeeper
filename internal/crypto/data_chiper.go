@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 )
 
+// Encrypt шифрование данных, основанное на ключе пользователя
 func Encrypt(key, data []byte) (string, error) {
 	blockCipher, err := aes.NewCipher(key)
 	if err != nil {
@@ -28,6 +29,7 @@ func Encrypt(key, data []byte) (string, error) {
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
+// Decrypt расшифровка данных, с помощью ключа пользователя
 func Decrypt(key []byte, dataB64 string) (string, error) {
 	data, err := base64.StdEncoding.DecodeString(dataB64)
 	if err != nil {

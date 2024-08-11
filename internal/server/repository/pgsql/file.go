@@ -11,6 +11,7 @@ import (
 
 const FileTableName = "file"
 
+// FileRepository структура для взаимодействия с таблицей файлов
 type FileRepository struct {
 	DBPoll    *pgxpool.Pool
 	tableName string
@@ -28,6 +29,7 @@ func NewFileRepository(ctx context.Context, pool *pgxpool.Pool, tableName string
 	}, nil
 }
 
+// Get получить файл по ИД
 func (f *FileRepository) Get(ctx context.Context, id uint64) (*domain.File, error) {
 	query := f.setTableName(`select * from #T# where id = $1`)
 
@@ -39,6 +41,7 @@ func (f *FileRepository) Get(ctx context.Context, id uint64) (*domain.File, erro
 	return &row, nil
 }
 
+// Insert добавить запись
 func (f *FileRepository) Insert(ctx context.Context, file *domain.File) error {
 	query := f.setTableName(`insert into #T# (name, path) values ($1, $2) returning id`)
 
@@ -50,6 +53,7 @@ func (f *FileRepository) Insert(ctx context.Context, file *domain.File) error {
 	return nil
 }
 
+// Update обновить запись
 func (f *FileRepository) Update(ctx context.Context, file *domain.File) error {
 	query := f.setTableName(`update #T# set
 		name = $1, 
@@ -66,6 +70,7 @@ func (f *FileRepository) Update(ctx context.Context, file *domain.File) error {
 	return nil
 }
 
+// Delete удалить запись
 func (f *FileRepository) Delete(ctx context.Context, id uint64) error {
 	query := f.setTableName(`delete from #T# where id = $1`)
 	_, err := f.DBPoll.Exec(ctx, query, id)

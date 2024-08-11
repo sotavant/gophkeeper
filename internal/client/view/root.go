@@ -19,6 +19,8 @@ var choices = map[int]string{
 	LoginChoice:        "Login",
 }
 
+// RootModel стартовая модель
+// позволяет просмотреть данные о программе, зарегистрировать или авторизоваться
 type RootModel struct {
 	cursor       int
 	choice       string

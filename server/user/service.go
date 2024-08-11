@@ -1,3 +1,4 @@
+// Package user пакет для взаимодействия запросов к серверу с базой данных
 package user
 
 import (
@@ -28,6 +29,7 @@ func NewService(u Repository) *Service {
 	}
 }
 
+// Register регистрация пользователя
 func (u *Service) Register(ctx context.Context, user domain2.User) (string, error) {
 	dbUser, err := u.userRepo.GetByLogin(ctx, user.Login)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -60,6 +62,7 @@ func (u *Service) Register(ctx context.Context, user domain2.User) (string, erro
 	return token, nil
 }
 
+// Login авторизация пользователя
 func (u *Service) Login(ctx context.Context, user domain2.User) (string, error) {
 	dbUser, err := u.userRepo.GetByLogin(ctx, user.Login)
 	if err != nil {
@@ -90,6 +93,7 @@ func (u *Service) Login(ctx context.Context, user domain2.User) (string, error) 
 	return token, nil
 }
 
+// HashPassword кодировка пароля перед сохранением в базе данных
 func HashPassword(password string) (string, error) {
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {

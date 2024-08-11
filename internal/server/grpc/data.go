@@ -1,3 +1,4 @@
+// Package grpc пакет для взаимодействия с сервером по протоколу grpc
 package grpc
 
 import (
@@ -32,6 +33,7 @@ func NewDataServer(s *data.Service, filesSavePath string, f *file3.Service) *Dat
 	}
 }
 
+// SaveData сохранение данных в базу
 func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb.SaveDataResponse, error) {
 	ur := &dataRequest{&domain2.Data{}}
 	if err := ur.Bind(ctx, req); err != nil {
@@ -49,6 +51,7 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 	}, nil
 }
 
+// GetData получение данных из базы
 func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDataResponse, error) {
 	var err error
 	var dbFile *domain2.File
@@ -83,6 +86,7 @@ func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.G
 	return getDataResponse(*d, dbFile), nil
 }
 
+// DeleteData удаление данных
 func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) (*emptypb.Empty, error) {
 	var err error
 
@@ -106,6 +110,7 @@ func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) 
 	return nil, nil
 }
 
+// GetDataList получение списка данных
 func (s *DataServer) GetDataList(ctx context.Context, empty *emptypb.Empty) (*pb.DataListResponse, error) {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
@@ -124,11 +129,7 @@ func (s *DataServer) GetDataList(ctx context.Context, empty *emptypb.Empty) (*pb
 	return getDataListResponse(list), nil
 }
 
-// test: file with same name
-// validate data
-// check row with id exist
-// check version
-// uploader -> fileService for save file -> dataService for add file
+// UploadFile загрузка файла
 func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 	validated := false
 	ur := &dataRequest{&domain2.Data{}}
@@ -195,6 +196,7 @@ func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 	})
 }
 
+// DownloadFile потоковая отдача файла по запросу
 func (s *DataServer) DownloadFile(req *pb.DownloadFileRequest, stream pb.DataService_DownloadFileServer) error {
 	dr := &DownloadFileRequest{}
 	if err := dr.BindDownloadFileRequest(stream.Context(), req); err != nil {
@@ -264,6 +266,7 @@ type dataRequest struct {
 	*domain2.Data
 }
 
+// BindUploadFile отображение данных запроса в модель сервера
 func (d *dataRequest) BindUploadFile(ctx context.Context, req *pb.UploadFileRequest) error {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
@@ -289,6 +292,7 @@ func (d *dataRequest) BindUploadFile(ctx context.Context, req *pb.UploadFileRequ
 	return nil
 }
 
+// Bind отображение данных запроса в модель сервера
 func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
@@ -387,6 +391,7 @@ type DownloadFileRequest struct {
 	FileID uint64
 }
 
+// BindDownloadFileRequest отображение данных запроса на скачивание файла в модель сервера
 func (d *DownloadFileRequest) BindDownloadFileRequest(ctx context.Context, req *pb.DownloadFileRequest) error {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {

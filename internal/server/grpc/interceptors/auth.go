@@ -1,3 +1,4 @@
+// Package interceptors пакет для модификации данных запроса от клиента к серверу
 package interceptors
 
 import (
@@ -24,10 +25,12 @@ type wrappedStream struct {
 	ctx context.Context
 }
 
+// Context получить context из потока данных
 func (w *wrappedStream) Context() context.Context {
 	return w.ctx
 }
 
+// SetContext записать context в поток данных
 func (w *wrappedStream) SetContext(ctx context.Context) {
 	w.ctx = ctx
 }
@@ -40,6 +43,7 @@ func (w *wrappedStream) SendMsg(m interface{}) error {
 	return w.ServerStream.SendMsg(m)
 }
 
+// StreamContextWrapper обертка для потока данных, для управления context
 type StreamContextWrapper interface {
 	grpc.ServerStream
 	SetContext(context.Context)
@@ -53,6 +57,7 @@ func newStreamContextWrapper(ss grpc.ServerStream) StreamContextWrapper {
 	}
 }
 
+// Auth получение из запроса авторизационных данных и запись их в контекст
 func Auth(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	if info.FullMethod == proto.UserService_Register_FullMethodName || info.FullMethod == proto.UserService_Login_FullMethodName {
 		return handler(ctx, req)
@@ -88,6 +93,7 @@ func Auth(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, hand
 	}
 }
 
+// StreamAuth получение из потокового запроса авторизационных данных и запись их в контекст
 func StreamAuth(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	md, ok := metadata.FromIncomingContext(ss.Context())
 	if ok {

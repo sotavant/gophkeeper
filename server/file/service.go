@@ -1,3 +1,4 @@
+// Package file пакет для обеспечения взаимодействия запросов к серверу и базой данных
 package file
 
 import (
@@ -23,7 +24,7 @@ func NewService(repo FileRepository) *Service {
 	return &Service{repo: repo}
 }
 
-// if update need delete old file
+// Save сохранение файла в базе данных
 func (s *Service) Save(ctx context.Context, file *domain2.File) error {
 	if file.ID == 0 {
 		err := s.repo.Insert(ctx, file)
@@ -54,6 +55,7 @@ func (s *Service) Save(ctx context.Context, file *domain2.File) error {
 	return nil
 }
 
+// Get получить запись из базы данных
 func (s *Service) Get(ctx context.Context, id uint64) (*domain2.File, error) {
 	file, err := s.repo.Get(ctx, id)
 	if err != nil {
@@ -68,6 +70,7 @@ func (s *Service) Get(ctx context.Context, id uint64) (*domain2.File, error) {
 	return file, nil
 }
 
+// Delete удалить запись из базы данных
 func (s *Service) Delete(ctx context.Context, id uint64) error {
 	file, err := s.repo.Get(ctx, id)
 	if err != nil {
@@ -92,6 +95,7 @@ func (s *Service) Delete(ctx context.Context, id uint64) error {
 	return nil
 }
 
+// GetSaveFileSubDir получить путь к файлу, основанные на ИД пользователя и ИД данных
 func GetSaveFileSubDir(data domain2.Data) string {
 	return "/" + strconv.FormatUint(data.UID, 10) + "/" + strconv.FormatUint(data.ID, 10)
 }

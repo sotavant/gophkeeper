@@ -1,3 +1,5 @@
+// Package crypto пакет для осуществления защищенного соединения
+// для шифрования данных
 package crypto
 
 import (
@@ -21,6 +23,7 @@ const (
 
 var rootDir string
 
+// Cipher для установки защищенного соединения
 type Cipher struct {
 	privateKey     *rsa.PrivateKey
 	publicKey      *rsa.PublicKey
@@ -28,6 +31,7 @@ type Cipher struct {
 	privateKeyPath string
 }
 
+// NewCipher инициализация
 func NewCipher(keysPath string) (*Cipher, error) {
 	privKeyFullPath := filepath.Join(keysPath, privateKeyPath)
 	pubKeyFullPath := filepath.Join(keysPath, publicKeyPath)
@@ -88,6 +92,7 @@ func getPubKey(publicKeyPath string) (*rsa.PublicKey, error) {
 	return publicKey, nil
 }
 
+// Encrypt шифрование данных
 func (c *Cipher) Encrypt(plaintext []byte) ([]byte, error) {
 	if c.publicKey == nil {
 		return plaintext, nil
@@ -101,6 +106,7 @@ func (c *Cipher) Encrypt(plaintext []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
+// Decrypt расшифровка
 func (c *Cipher) Decrypt(encrypted []byte) ([]byte, error) {
 	if c.privateKey == nil {
 		return encrypted, nil
@@ -130,6 +136,7 @@ func (c *Cipher) IsPublicKeyExist() bool {
 	return true
 }
 
+// GetClientGRPCTransportCreds данные для установки защищенного соединения со стороны клиента
 func (c *Cipher) GetClientGRPCTransportCreds() credentials.TransportCredentials {
 	if c == nil || c.certPath == "" {
 		return insecure.NewCredentials()
@@ -143,6 +150,7 @@ func (c *Cipher) GetClientGRPCTransportCreds() credentials.TransportCredentials 
 	return creds
 }
 
+// GetServerGRPCTransportCreds данные для установки защищенного соединения со стороны сервера
 func (c *Cipher) GetServerGRPCTransportCreds() credentials.TransportCredentials {
 	if c == nil || c.certPath == "" || c.privateKeyPath == "" {
 		return insecure.NewCredentials()

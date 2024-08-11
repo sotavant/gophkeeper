@@ -1,3 +1,4 @@
+// Package server пакет для работы с сервером
 package server
 
 import (
@@ -18,6 +19,7 @@ const (
 	cryptoKeysPath = "CRYPTO_KEYS_PATH"
 )
 
+// App структура для хранения данных приложения
 type App struct {
 	Address,
 	FilesSavePath,
