@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package gophkeeper;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "gophkeeper/proto";
+
+message User {
+  string Login = 1 [(buf.validate.field).string.min_len = 2, (buf.validate.field).string.max_len = 100];
+  string Password = 2 [(buf.validate.field).string.min_len = 6, (buf.validate.field).string.max_len = 12];
+}
+
+message RegisterRequest {
+  User user = 1;
+}
+
+message RegisterResponse {
+  string Token = 1;
+  string error = 2;
+}
+
+service UserService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(RegisterRequest) returns (RegisterResponse);
+}
