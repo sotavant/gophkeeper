@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/sha1"
 	"errors"
 	"flag"
 	"gophkeeper/internal"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang.org/x/crypto/pbkdf2"
 	"google.golang.org/grpc"
 )
 
@@ -21,6 +23,7 @@ type AppUser struct {
 
 type App struct {
 	UserClient *g.UserClient
+	DataClient *g.DataClient
 	User       AppUser
 }
 
@@ -44,6 +47,10 @@ func InitApp() error {
 	return nil
 }
 
+func (a *App) SetStorageKey(login, pass string) {
+	a.User.StorageKey = pbkdf2.Key([]byte(pass), []byte(login), 4096, 32, sha1.New)
+}
+
 func initGRPCUserClient(cnf *config) error {
 	ch, err := crypto.NewCipher(cnf.cryptoKeysPath)
 	if err != nil {
@@ -55,8 +62,8 @@ func initGRPCUserClient(cnf *config) error {
 		internal.Logger.Fatalw("failed to create grpc client", "error", err)
 	}
 
-	c := pb.NewUserServiceClient(conn)
-	AppInstance.UserClient = g.NewUserClient(c)
+	AppInstance.UserClient = g.NewUserClient(pb.NewUserServiceClient(conn))
+	AppInstance.DataClient = g.NewDataClient(pb.NewDataServiceClient(conn))
 
 	return nil
 }

@@ -8,4 +8,6 @@ var (
 	ErrRegisterRequest        = errors.New("err in register request")
 	ErrSaveDataRequest        = errors.New("err in save data request")
 	ErrSaveDataIdErrorRequest = errors.New("err in save data request")
+	ErrEncryptData            = errors.New("err in encrypt data")
+	ErrReadingFile            = errors.New("err in reading file")
 )

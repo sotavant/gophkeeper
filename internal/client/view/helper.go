@@ -35,4 +35,5 @@ func saveData(d domain.Data) (uint64, error) {
 		}
 	}
 
+	return 0, nil
 }

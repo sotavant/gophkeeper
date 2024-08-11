@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	clientDomain "gophkeeper/client/domain"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
 	pb "gophkeeper/proto"
 
@@ -22,18 +21,20 @@ func NewDataClient(client pb.DataServiceClient) *DataClient {
 	}
 }
 
-func (c *DataClient) SaveDate(ctx context.Context, data *domain.Data) error {
+func (c *DataClient) SaveData(ctx context.Context, data *clientDomain.Data) error {
+	pbData := &pb.Data{
+		Id:      data.ID,
+		Name:    data.Name,
+		Version: data.Version,
+		Login:   data.Login,
+		Pass:    data.Pass,
+		Text:    data.Text,
+		CardNum: data.CardNum,
+		Meta:    data.Meta,
+	}
+
 	resp, err := c.client.SaveData(ctx, &pb.SaveDataRequest{
-		Data: &pb.Data{
-			Id:      data.ID,
-			Name:    data.Name,
-			Login:   *data.Login,
-			Pass:    *data.Pass,
-			Text:    *data.Text,
-			CardNum: *data.CardNum,
-			Meta:    *data.Meta,
-			Version: data.Version,
-		},
+		Data: pbData,
 	})
 
 	if err != nil {
@@ -50,5 +51,7 @@ func (c *DataClient) SaveDate(ctx context.Context, data *domain.Data) error {
 	}
 
 	data.ID = resp.GetDataId()
+	data.Version = resp.GetDataVersion()
+
 	return nil
 }
