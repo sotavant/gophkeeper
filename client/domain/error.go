@@ -14,4 +14,7 @@ var (
 	ErrGetDataList            = errors.New("error in get data list")
 	ErrGetData                = errors.New("error in get data")
 	ErrDataNotFound           = errors.New("data not found")
+	ErrCreationFileSaveDir    = errors.New("error in creation save dir")
+	ErrDownloadFile           = errors.New("error in download file request")
+	ErrDeleteData             = errors.New("error in delete request")
 )

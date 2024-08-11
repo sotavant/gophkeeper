@@ -5,6 +5,7 @@ import (
 	"errors"
 	clientDomain "gophkeeper/client/domain"
 	domain2 "gophkeeper/domain"
+	file2 "gophkeeper/file"
 	"gophkeeper/internal"
 	pb "gophkeeper/proto"
 	"io"
@@ -50,6 +51,7 @@ func (c *DataClient) Get(ctx context.Context, id uint64) (*clientDomain.Data, er
 		FileName: respData.GetFileName(),
 		Login:    respData.GetLogin(),
 		Meta:     respData.GetMeta(),
+		FileID:   respData.GetFileID(),
 	}
 
 	return data, nil
@@ -93,7 +95,6 @@ func (c *DataClient) SaveData(ctx context.Context, data *clientDomain.Data) erro
 		Meta:    data.Meta,
 	}
 
-	internal.Logger.Info(pbData)
 	resp, err := c.client.SaveData(ctx, &pb.SaveDataRequest{
 		Data: pbData,
 	})
@@ -111,7 +112,6 @@ func (c *DataClient) SaveData(ctx context.Context, data *clientDomain.Data) erro
 		return errors.New("data ID absent in response")
 	}
 
-	internal.Logger.Infow("saved data", "id", resp.GetDataId(), "version", resp.GetDataVersion())
 	data.ID = resp.GetDataId()
 	data.Version = resp.GetDataVersion()
 
@@ -168,6 +168,81 @@ func (c *DataClient) UploadFile(ctx context.Context, data *clientDomain.Data, en
 	}
 
 	data.Version = resp.GetDataVersion()
+	data.FileID = resp.GetFileId()
+
+	return nil
+}
+
+func (c *DataClient) DownloadFile(ctx context.Context, data clientDomain.Data, filePath, fileName string) (string, error) {
+	var rr *pb.DownloadFileResponse
+
+	request := &pb.DownloadFileRequest{
+		DataID: data.ID,
+		FileID: data.FileID,
+	}
+
+	fileStreamResponse, err := c.client.DownloadFile(ctx, request)
+	if err != nil {
+		if status.Code(err) == codes.Internal {
+			internal.Logger.Errorw("error while download file", "error", err)
+			return "", clientDomain.ErrDownloadFile
+		}
+	}
+
+	file := file2.NewUploader(filePath)
+	defer func(file *file2.Uploader) {
+		err = file.Close()
+		if err != nil {
+			internal.Logger.Fatalw("error while close file", "error", err)
+		}
+	}(file)
+
+	var fileSize uint32 = 0
+
+	for {
+		rr, err = fileStreamResponse.Recv()
+		if err == io.EOF || rr == nil {
+			break
+		}
+
+		if err != nil {
+			internal.Logger.Errorw("error while receive file download response", "error", err)
+			return "", clientDomain.ErrDownloadFile
+		}
+
+		if file.FilePath == "" {
+			if err = file.SetFile(fileName, ""); err != nil {
+				internal.Logger.Errorw("error while create downloaded file", "error", err)
+				return "", clientDomain.ErrDownloadFile
+			}
+		}
+
+		chunk := rr.GetFileChunk()
+		fileSize += uint32(len(chunk))
+		if err = file.Write(chunk); err != nil {
+			internal.Logger.Errorw("error while write downloaded file", "error", err)
+			return "", clientDomain.ErrDownloadFile
+		}
+	}
+
+	if fileSize == 0 {
+		internal.Logger.Errorw("empty file")
+		return "", clientDomain.ErrDownloadFile
+	}
+
+	return file.FilePath, nil
+}
+
+func (c *DataClient) DeleteData(ctx context.Context, id uint64) error {
+	resp := &pb.DeleteDataRequest{Id: id}
+
+	_, err := c.client.DeleteData(ctx, resp)
+	if err != nil {
+		if status.Code(err) == codes.Internal {
+			internal.Logger.Errorw("error while delete data", "error", err)
+			return clientDomain.ErrDeleteData
+		}
+	}
 
 	return nil
 }

@@ -2,6 +2,7 @@ package domain
 
 type Data struct {
 	ID,
+	FileID,
 	Version uint64
 	Name,
 	Pass,

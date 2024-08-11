@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"gophkeeper/client/domain"
 	domain2 "gophkeeper/domain"
 	"gophkeeper/internal"
@@ -10,23 +11,24 @@ import (
 	"gophkeeper/internal/crypto"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
-func SaveData(data domain.Data) (uint64, uint64, error) {
+func SaveData(data domain.Data) (domain.Data, error) {
 	var encryptedFilePath string
 
 	ctx := context.WithValue(context.Background(), interceptors.ContextUserTokenKey{}, client.AppInstance.User.Token)
 	// hash data
 	hashedData, err := encryptData(data)
 	if err != nil {
-		return 0, 0, domain.ErrEncryptData
+		return data, domain.ErrEncryptData
 	}
 
 	// save data
 	err = client.AppInstance.DataClient.SaveData(ctx, hashedData)
 
 	if err != nil {
-		return 0, 0, err
+		return data, err
 	}
 
 	data.ID = hashedData.ID
@@ -39,7 +41,7 @@ func SaveData(data domain.Data) (uint64, uint64, error) {
 		encryptedFilePath, err = encryptFile(data.FilePath)
 		err = client.AppInstance.DataClient.UploadFile(ctx, &data, encryptedFilePath, filepath.Base(data.FilePath))
 		if err != nil {
-			return hashedData.ID, hashedData.Version, err
+			return data, err
 		}
 
 		data.FileName = filepath.Base(data.FilePath)
@@ -48,7 +50,7 @@ func SaveData(data domain.Data) (uint64, uint64, error) {
 		client.AppInstance.DecryptedData[data.ID] = data
 	}
 
-	return data.ID, data.Version, err
+	return data, nil
 }
 
 func GetData(id uint64) (*domain.Data, error) {
@@ -84,6 +86,36 @@ func GetDataList() ([]domain2.DataName, error) {
 	}
 
 	return list, nil
+}
+
+func DownloadFile(data domain.Data) (string, error) {
+	ctx := context.WithValue(context.Background(), interceptors.ContextUserTokenKey{}, client.AppInstance.User.Token)
+
+	dataSavePath := filepath.Join(client.AppInstance.DataSavePath, client.AppInstance.User.Login, strconv.FormatUint(data.ID, 10))
+	tmpSavePath, err := os.MkdirTemp(filepath.FromSlash("/tmp"), client.AppInstance.User.Login)
+	if err != nil {
+		return "", errors.New("cannot create temporary directory")
+	}
+
+	tmpFilePath, err := client.AppInstance.DataClient.DownloadFile(ctx, data, tmpSavePath, data.FileName)
+	if err != nil {
+		return tmpFilePath, err
+	}
+
+	return decryptFile(tmpFilePath, filepath.Join(dataSavePath, data.FileName))
+}
+
+func DeleteData(id uint64) error {
+	ctx := context.WithValue(context.Background(), interceptors.ContextUserTokenKey{}, client.AppInstance.User.Token)
+	err := client.AppInstance.DataClient.DeleteData(ctx, id)
+
+	delete(client.AppInstance.DecryptedData, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func encryptData(data domain.Data) (*domain.Data, error) {
@@ -190,6 +222,7 @@ func decryptData(data domain.Data) (*domain.Data, error) {
 		Login:    login,
 		Meta:     meta,
 		FileName: data.FileName,
+		FileID:   data.FileID,
 	}
 
 	return decryptedData, nil
@@ -211,6 +244,43 @@ func encryptFile(filePath string) (string, error) {
 	f, err := os.CreateTemp(filepath.FromSlash("/tmp"), client.AppInstance.User.Login)
 	if err != nil {
 		internal.Logger.Errorw("error creating temp file", "error", err)
+		return "", domain.ErrEncryptData
+	}
+
+	defer func(f *os.File) {
+		err = f.Close()
+		if err != nil {
+			internal.Logger.Fatalw("error creating temp file", "error", err)
+		}
+	}(f)
+
+	_, err = f.Write([]byte(cryptedText))
+
+	return f.Name(), nil
+}
+
+func decryptFile(inputFile, outputFile string) (string, error) {
+	text, err := os.ReadFile(inputFile)
+	if err != nil {
+		internal.Logger.Errorw("error reading file", "error", err)
+		return "", domain.ErrReadingFile
+	}
+
+	cryptedText, err := crypto.Decrypt(client.AppInstance.User.StorageKey, string(text))
+	if err != nil {
+		internal.Logger.Errorw("error encrypting file", "error", err)
+		return "", domain.ErrEncryptData
+	}
+
+	err = os.MkdirAll(filepath.Dir(outputFile), 0755)
+	if err != nil {
+		internal.Logger.Errorw("error creating output directory", "error", err)
+		return "", domain.ErrEncryptData
+	}
+
+	f, err := os.Create(outputFile)
+	if err != nil {
+		internal.Logger.Errorw("error open output file", "error", err)
 		return "", domain.ErrEncryptData
 	}
 

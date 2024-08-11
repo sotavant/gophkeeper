@@ -155,16 +155,18 @@ func TestSaveData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var id uint64
 			var version uint64 = 0
-			id, _, err = SaveData(*tt.args.data)
+			var gotData domain.Data
+			gotData, err = SaveData(*tt.args.data)
 
 			assert.NoError(t, err)
-			assert.NotNil(t, client.AppInstance.DecryptedData[id])
-			assert.Greater(t, client.AppInstance.DecryptedData[id].Version, version)
+			assert.NotNil(t, client.AppInstance.DecryptedData[gotData.ID])
+			assert.Greater(t, client.AppInstance.DecryptedData[gotData.ID].Version, version)
+			assert.Equal(t, client.AppInstance.DecryptedData[gotData.ID].Version, gotData.Version)
 
 			if tt.needFileName {
-				assert.NotEmpty(t, client.AppInstance.DecryptedData[id].FilePath)
+				assert.Greater(t, client.AppInstance.DecryptedData[gotData.ID].FileID, version)
+				assert.NotEmpty(t, client.AppInstance.DecryptedData[gotData.ID].FilePath)
 			}
 		})
 	}
@@ -229,7 +231,7 @@ func TestGet(t *testing.T) {
 		Name: "test",
 		Pass: "test",
 	}
-	testData.ID, testData.Version, err = SaveData(testData)
+	testData, err = SaveData(testData)
 	assert.NoError(t, err)
 
 	type args struct {
@@ -321,7 +323,7 @@ func TestGetDataList(t *testing.T) {
 		Name: "test",
 		Pass: "test",
 	}
-	testData.ID, testData.Version, err = SaveData(testData)
+	testData, err = SaveData(testData)
 	assert.NoError(t, err)
 
 	tests := []struct {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"gophkeeper/domain"
-	"gophkeeper/internal"
 	"gophkeeper/proto"
 
 	"google.golang.org/grpc"
@@ -30,7 +29,6 @@ func StreamAuth(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn,
 		return
 	}
 
-	internal.Logger.Info("hear")
 	return streamer(ctx, desc, cc, method, opts...)
 }
 

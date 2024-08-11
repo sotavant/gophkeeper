@@ -17,6 +17,7 @@ message Data {
   string Meta = 7;
   string FileName = 8;
   uint64 Version = 10;
+  uint64 FileID = 11;
 }
 
 message DataList {

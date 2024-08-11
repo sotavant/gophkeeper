@@ -28,6 +28,7 @@ type App struct {
 	DataClient    *g.DataClient
 	User          AppUser
 	DecryptedData map[uint64]domain.Data
+	DataSavePath  string
 }
 
 var AppInstance *App
@@ -43,6 +44,7 @@ func InitApp() error {
 
 	AppInstance = &App{
 		DecryptedData: make(map[uint64]domain.Data),
+		DataSavePath:  c.fileSavePath,
 	}
 
 	err = initGRPCUserClient(c)
@@ -81,6 +83,7 @@ func initGRPCUserClient(cnf *config) error {
 
 type config struct {
 	address,
+	fileSavePath,
 	cryptoKeysPath string
 }
 
@@ -92,6 +95,7 @@ func initConfig() *config {
 
 	flag.StringVar(&c.address, "a", "", "server address")
 	flag.StringVar(&c.cryptoKeysPath, "c", "", "crypto keys path")
+	flag.StringVar(&c.fileSavePath, "f", "", "save files path")
 
 	flag.Parse()
 
@@ -111,7 +115,7 @@ func initConfig() *config {
 }
 
 func checkConfig(c *config) error {
-	if c.address == "" {
+	if c.address == "" || c.fileSavePath == "" || c.cryptoKeysPath == "" {
 		return errors.New("please, check configs")
 	}
 

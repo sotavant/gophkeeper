@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gophkeeper/client/data"
 	"gophkeeper/client/domain"
+	"gophkeeper/internal"
 	"strconv"
 	"strings"
 
@@ -131,6 +132,10 @@ func (m DataFieldsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+l":
 			dt := InitDataListModel()
 			return dt, dt.Init()
+		case "ctrl+d":
+			m.dowloadFile()
+		case "ctrl+e":
+			return m.deleteData()
 		// Set focus to next input
 		case "tab", "shift+tab", "enter", "up", "down":
 			s := msgType.String()
@@ -216,8 +221,14 @@ func (m DataFieldsModel) View() string {
 	b.WriteRune('\n')
 	b.WriteString(actionsStyle.Render("'ctrl+a' to edit meta window"))
 	b.WriteRune('\n')
+	b.WriteString(actionsStyle.Render("'ctrl+d' for download file"))
+	b.WriteRune('\n')
 	b.WriteString(actionsStyle.Render("'ctrl+s' save data"))
 	b.WriteRune('\n')
+	if m.data.ID != 0 {
+		b.WriteString(actionsStyle.Render("'ctrl+e' delete data"))
+		b.WriteRune('\n')
+	}
 	b.WriteString(actionsStyle.Render("'ctrl+l' to data list"))
 	b.WriteRune('\n')
 	b.WriteString(helpStyle.Render("'ctrl+w' to main window\n'ctrl-c' to quit"))
@@ -267,14 +278,46 @@ func (m DataFieldsModel) getData() domain.Data {
 }
 
 func (m *DataFieldsModel) saveData() {
-	id, version, err := data.SaveData(m.getData())
+	gotData, err := data.SaveData(m.getData())
 	if err != nil {
 		m.errMsg = err.Error()
 	} else {
-		m.data.ID = id
-		m.data.Version = version
+		m.data.ID = gotData.ID
+		m.data.Version = gotData.Version
+		m.data.FileID = gotData.FileID
 		m.msg = "data saved"
 	}
+}
+
+func (m *DataFieldsModel) dowloadFile() {
+	if m.data.FileName == "" {
+		m.errMsg = "file is absent or data not saved"
+		return
+	}
+
+	internal.Logger.Info(m.data.FileID)
+	filePath, err := data.DownloadFile(m.data)
+	if err != nil {
+		m.errMsg = err.Error()
+		return
+	}
+
+	m.msg = fmt.Sprintf("Your file: %s", filePath)
+}
+
+func (m *DataFieldsModel) deleteData() (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	if m.data.ID == 0 {
+		return m, cmd
+	}
+
+	err := data.DeleteData(m.data.ID)
+	if err != nil {
+		m.errMsg = err.Error()
+		return m, cmd
+	}
+
+	return InitDataListModel(), cmd
 }
 
 // Validator functions to ensure valid input

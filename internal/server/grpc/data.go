@@ -327,6 +327,7 @@ func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 
 func getDataResponse(data domain.Data, file *domain.File) *pb.GetDataResponse {
 	fileName := ""
+
 	if file != nil {
 		fileName = file.Name
 	}
@@ -356,6 +357,10 @@ func getDataResponse(data domain.Data, file *domain.File) *pb.GetDataResponse {
 
 	if data.Meta != nil {
 		respData.Meta = *data.Meta
+	}
+
+	if data.FileID != nil {
+		respData.FileID = *data.FileID
 	}
 
 	return &pb.GetDataResponse{Data: respData}

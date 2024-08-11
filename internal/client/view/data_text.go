@@ -129,12 +129,14 @@ func (m dataTextModel) View() string {
 }
 
 func (m *dataTextModel) saveData() {
-	id, version, err := data.SaveData(m.getData())
+	gotData, err := data.SaveData(m.getData())
+
 	if err != nil {
 		m.err = err
 	} else {
-		m.data.ID = id
-		m.data.Version = version
+		m.data.ID = gotData.ID
+		m.data.Version = gotData.Version
+		m.data.FileID = gotData.FileID
 		m.msg = "data saved"
 	}
 }
