@@ -2,13 +2,13 @@ package grpc
 
 import (
 	"context"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
 	g "gophkeeper/internal/server/grpc"
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
 	pb "gophkeeper/proto"
-	"gophkeeper/user"
+	"gophkeeper/server/domain"
+	"gophkeeper/server/user"
 	"net"
 	"testing"
 

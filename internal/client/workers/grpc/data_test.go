@@ -3,9 +3,6 @@ package grpc
 import (
 	"context"
 	clientDomain "gophkeeper/client/domain"
-	"gophkeeper/data"
-	"gophkeeper/domain"
-	"gophkeeper/file"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/auth"
 	g "gophkeeper/internal/server/grpc"
@@ -13,6 +10,9 @@ import (
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
 	pb "gophkeeper/proto"
+	"gophkeeper/server/data"
+	domain2 "gophkeeper/server/domain"
+	"gophkeeper/server/file"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -43,7 +43,7 @@ func TestDataClient_SaveData(t *testing.T) {
 	repo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
 	assert.NoError(t, err)
 
-	userId, err := repo.Store(ctx, domain.User{
+	userId, err := repo.Store(ctx, domain2.User{
 		Login:    existingUserLogin,
 		Password: "kakadud",
 	})
@@ -59,7 +59,7 @@ func TestDataClient_SaveData(t *testing.T) {
 	dataRepo, err := pgsql.NewDataRepository(ctx, pool, test.DataTestTable, test.FileTestTable, test.UsersTestTable)
 	assert.NoError(t, err)
 
-	testData := &domain.Data{
+	testData := &domain2.Data{
 		Name:    "test",
 		Version: 1,
 		UID:     userId,
@@ -88,7 +88,7 @@ func TestDataClient_SaveData(t *testing.T) {
 
 	token, err := auth.BuildJWTString(userId)
 	assert.NoError(t, err)
-	md := metadata.Pairs(domain.AuthorizationMetaKey, domain.TokenSubstr+" "+token)
+	md := metadata.Pairs(domain2.AuthorizationMetaKey, domain2.TokenSubstr+" "+token)
 	mCtx := metadata.NewOutgoingContext(ctx, md)
 
 	pbClient := pb.NewDataServiceClient(conn)

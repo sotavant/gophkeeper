@@ -3,9 +3,6 @@ package data
 import (
 	"context"
 	"gophkeeper/client/domain"
-	"gophkeeper/data"
-	serverDomain "gophkeeper/domain"
-	"gophkeeper/file"
 	"gophkeeper/internal"
 	"gophkeeper/internal/client"
 	g "gophkeeper/internal/client/workers/grpc"
@@ -16,6 +13,9 @@ import (
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
 	pb "gophkeeper/proto"
+	"gophkeeper/server/data"
+	domain2 "gophkeeper/server/domain"
+	"gophkeeper/server/file"
 	"net"
 	"os"
 	"testing"
@@ -93,7 +93,7 @@ func TestSaveData(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test user
-	user := &serverDomain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -197,7 +197,7 @@ func TestGet(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test user
-	user := &serverDomain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -289,7 +289,7 @@ func TestGetDataList(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test user
-	user := &serverDomain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -335,7 +335,7 @@ func TestGetDataList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got []serverDomain.DataName
+			var got []domain2.DataName
 			got, err = GetDataList()
 			assert.NoError(t, err)
 
@@ -357,7 +357,7 @@ func createTestFile(t *testing.T) os.File {
 	return *tmpFile
 }
 
-func initTestAppInstance(t *testing.T, user *serverDomain.User) *grpc.ClientConn {
+func initTestAppInstance(t *testing.T, user *domain2.User) *grpc.ClientConn {
 	client.AppInstance = &client.App{
 		DecryptedData: make(map[uint64]domain.Data),
 	}

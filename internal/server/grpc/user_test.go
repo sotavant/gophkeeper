@@ -2,12 +2,12 @@ package grpc
 
 import (
 	"context"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
 	"gophkeeper/proto"
-	"gophkeeper/user"
+	"gophkeeper/server/domain"
+	"gophkeeper/server/user"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"

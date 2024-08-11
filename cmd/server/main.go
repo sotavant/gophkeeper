@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"gophkeeper/data"
-	"gophkeeper/file"
 	"gophkeeper/internal"
 	"gophkeeper/internal/crypto"
 	"gophkeeper/internal/server"
@@ -11,7 +9,9 @@ import (
 	interceptors2 "gophkeeper/internal/server/grpc/interceptors"
 	"gophkeeper/internal/server/repository/pgsql"
 	pb "gophkeeper/proto"
-	"gophkeeper/user"
+	"gophkeeper/server/data"
+	"gophkeeper/server/file"
+	"gophkeeper/server/user"
 	"net"
 	"os"
 	"os/signal"

@@ -2,8 +2,8 @@ package file
 
 import (
 	"bytes"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
+	"gophkeeper/server/domain"
 	"os"
 	"path/filepath"
 )

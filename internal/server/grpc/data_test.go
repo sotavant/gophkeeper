@@ -3,16 +3,16 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"gophkeeper/data"
-	"gophkeeper/domain"
-	"gophkeeper/file"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/auth"
 	"gophkeeper/internal/server/grpc/interceptors"
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
 	pb "gophkeeper/proto"
-	user2 "gophkeeper/user"
+	"gophkeeper/server/data"
+	domain2 "gophkeeper/server/domain"
+	"gophkeeper/server/file"
+	user2 "gophkeeper/server/user"
 	"io"
 	"net"
 	"os"
@@ -56,7 +56,7 @@ func TestDataServer_SaveData(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, testUsersTable)
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -74,7 +74,7 @@ func TestDataServer_SaveData(t *testing.T) {
 	var versionFirst uint64 = 1
 	login := "test"
 	name := "test"
-	testData := &domain.Data{
+	testData := &domain2.Data{
 		Name:    name,
 		Login:   &login,
 		Pass:    &login,
@@ -169,7 +169,7 @@ func TestDataServer_UploadFile(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -177,7 +177,7 @@ func TestDataServer_UploadFile(t *testing.T) {
 
 	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
 	assert.NoError(t, err)
-	dData := domain.Data{
+	dData := domain2.Data{
 		Name:    "5",
 		Version: 1,
 		UID:     userID,
@@ -199,7 +199,7 @@ func TestDataServer_UploadFile(t *testing.T) {
 	token, err := auth.BuildJWTString(userID)
 	assert.NoError(t, err)
 
-	md := metadata.Pairs(domain.AuthorizationMetaKey, domain.TokenSubstr+" "+token)
+	md := metadata.Pairs(domain2.AuthorizationMetaKey, domain2.TokenSubstr+" "+token)
 	mCtx := metadata.NewOutgoingContext(ctx, md)
 	ctxx := context.WithValue(mCtx, user2.ContextUserIDKey{}, userID)
 
@@ -286,21 +286,21 @@ func TestDataServer_GetDataList(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
 	userID, err := userRepo.Store(ctx, *user)
 	assert.NoError(t, err)
 
-	user3 := &domain.User{
+	user3 := &domain2.User{
 		Login:    "testa",
 		Password: "test",
 	}
 	user3ID, err := userRepo.Store(ctx, *user3)
 	assert.NoError(t, err)
 
-	user4 := &domain.User{
+	user4 := &domain2.User{
 		Login:    "testaa",
 		Password: "test",
 	}
@@ -310,7 +310,7 @@ func TestDataServer_GetDataList(t *testing.T) {
 	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
 	assert.NoError(t, err)
 
-	dData := domain.Data{
+	dData := domain2.Data{
 		Name:    "5",
 		Version: 1,
 		UID:     userID,
@@ -318,7 +318,7 @@ func TestDataServer_GetDataList(t *testing.T) {
 	err = repo.Insert(ctx, &dData)
 	assert.NoError(t, err)
 
-	dData2 := domain.Data{
+	dData2 := domain2.Data{
 		Name:    "6",
 		Version: 1,
 		UID:     userID,
@@ -326,7 +326,7 @@ func TestDataServer_GetDataList(t *testing.T) {
 	err = repo.Insert(ctx, &dData2)
 	assert.NoError(t, err)
 
-	dData3 := domain.Data{
+	dData3 := domain2.Data{
 		Name:    "7",
 		Version: 1,
 		UID:     user4ID,
@@ -383,7 +383,7 @@ func TestDataServer_GetData(t *testing.T) {
 	fileRepo, err := pgsql.NewFileRepository(ctx, pool, fileTable)
 	assert.NoError(t, err)
 
-	dbFile := &domain.File{
+	dbFile := &domain2.File{
 		Name: "test",
 		Path: "test",
 	}
@@ -392,7 +392,7 @@ func TestDataServer_GetData(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -402,7 +402,7 @@ func TestDataServer_GetData(t *testing.T) {
 	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
 	assert.NoError(t, err)
 
-	dData := domain.Data{
+	dData := domain2.Data{
 		Name:    "5",
 		Version: 1,
 		UID:     userID,
@@ -475,7 +475,7 @@ func TestDataServer_DeleteData(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
-	dbFile := &domain.File{
+	dbFile := &domain2.File{
 		Name: filepath.Base(tmpFile.Name()),
 		Path: tmpFile.Name(),
 	}
@@ -484,7 +484,7 @@ func TestDataServer_DeleteData(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -494,7 +494,7 @@ func TestDataServer_DeleteData(t *testing.T) {
 	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
 	assert.NoError(t, err)
 
-	dData := domain.Data{
+	dData := domain2.Data{
 		Name:    "5",
 		Version: 1,
 		UID:     userID,
@@ -545,14 +545,14 @@ func TestDataServer_DownloadFile(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
-	dbFile := &domain.File{
+	dbFile := &domain2.File{
 		Name: filepath.Base(tmpFile.Name()),
 		Path: tmpFile.Name(),
 	}
 	err = fileRepo.Insert(ctx, dbFile)
 	assert.NoError(t, err)
 
-	dbFileWithBadFile := &domain.File{
+	dbFileWithBadFile := &domain2.File{
 		Name: filepath.Base(tmpFile.Name()),
 		Path: tmpFile.Name() + "____",
 	}
@@ -562,7 +562,7 @@ func TestDataServer_DownloadFile(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, userTable)
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -572,7 +572,7 @@ func TestDataServer_DownloadFile(t *testing.T) {
 	repo, err := pgsql.NewDataRepository(ctx, pool, dataTable, fileTable, userTable)
 	assert.NoError(t, err)
 
-	dData := domain.Data{
+	dData := domain2.Data{
 		Name:    "5",
 		Version: 1,
 		UID:     userID,
@@ -582,7 +582,7 @@ func TestDataServer_DownloadFile(t *testing.T) {
 	err = repo.Insert(ctx, &dData)
 	assert.NoError(t, err)
 
-	dDataWithWrongFilePath := domain.Data{
+	dDataWithWrongFilePath := domain2.Data{
 		Name:    "6",
 		Version: 1,
 		UID:     userID,
@@ -660,7 +660,7 @@ func TestDataServer_DownloadFile(t *testing.T) {
 			token, err := auth.BuildJWTString(tt.userID)
 			assert.NoError(t, err)
 
-			md := metadata.Pairs(domain.AuthorizationMetaKey, domain.TokenSubstr+" "+token)
+			md := metadata.Pairs(domain2.AuthorizationMetaKey, domain2.TokenSubstr+" "+token)
 			mCtx := metadata.NewOutgoingContext(ctx, md)
 
 			fileStreamResponse, err := client.DownloadFile(mCtx, tt.request)

@@ -2,14 +2,14 @@ package grpc
 
 import (
 	"context"
+	"gophkeeper/server/domain"
+	"gophkeeper/server/user"
 
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"gophkeeper/domain"
 	"gophkeeper/internal"
-	"gophkeeper/user"
 )
 import pb "gophkeeper/proto"
 

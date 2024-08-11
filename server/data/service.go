@@ -2,9 +2,9 @@ package data
 
 import (
 	"context"
-	"gophkeeper/domain"
-	"gophkeeper/file"
 	"gophkeeper/internal"
+	domain2 "gophkeeper/server/domain"
+	"gophkeeper/server/file"
 	"path/filepath"
 )
 
@@ -14,18 +14,18 @@ type Service struct {
 }
 
 type Repository interface {
-	Insert(ctx context.Context, data *domain.Data) error
-	Update(ctx context.Context, data domain.Data) error
-	Get(ctx context.Context, id uint64) (*domain.Data, error)
-	GetByUser(ctx context.Context, id uint64, uid uint64) (*domain.Data, error)
+	Insert(ctx context.Context, data *domain2.Data) error
+	Update(ctx context.Context, data domain2.Data) error
+	Get(ctx context.Context, id uint64) (*domain2.Data, error)
+	GetByUser(ctx context.Context, id uint64, uid uint64) (*domain2.Data, error)
 	GetByNameAndUserID(ctx context.Context, uid uint64, name string) (uint64, error)
-	SetFile(ctx context.Context, data domain.Data) error
-	GetList(ctx context.Context, uid uint64) ([]domain.DataName, error)
+	SetFile(ctx context.Context, data domain2.Data) error
+	GetList(ctx context.Context, uid uint64) ([]domain2.DataName, error)
 	Delete(ctx context.Context, id uint64) error
 }
 
 type FileRepository interface {
-	Get(ctx context.Context, id uint64) (*domain.File, error)
+	Get(ctx context.Context, id uint64) (*domain2.File, error)
 }
 
 func NewService(d Repository, fileRepo FileRepository) *Service {
@@ -35,16 +35,16 @@ func NewService(d Repository, fileRepo FileRepository) *Service {
 	}
 }
 
-func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
+func (s Service) UpsertData(ctx context.Context, data *domain2.Data) error {
 	if data.ID == 0 {
 		uniq, err := s.checkName(ctx, data, nil)
 		if err != nil {
 			internal.Logger.Errorw("error while checking name", "err", err)
-			return domain.ErrCheckDataName
+			return domain2.ErrCheckDataName
 		}
 
 		if !uniq {
-			return domain.ErrDataNameNotUniq
+			return domain2.ErrDataNameNotUniq
 		}
 
 		data.Version = getVersion()
@@ -52,13 +52,13 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 		err = s.DataRepo.Insert(ctx, data)
 		if err != nil {
 			internal.Logger.Errorw("error while inserting data", "err", err)
-			return domain.ErrDataInsert
+			return domain2.ErrDataInsert
 		}
 	} else {
 		oldRow, err := s.DataRepo.Get(ctx, data.ID)
 		if err != nil {
 			internal.Logger.Errorw("error while fetching data", "id", data.ID, "err", err)
-			return domain.ErrInternalServerError
+			return domain2.ErrInternalServerError
 		}
 
 		err = s.updateVersion(oldRow, data)
@@ -69,17 +69,17 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 		uniq, err := s.checkName(ctx, data, oldRow)
 		if err != nil {
 			internal.Logger.Errorw("error while checking name", "err", err)
-			return domain.ErrCheckDataName
+			return domain2.ErrCheckDataName
 		}
 
 		if !uniq {
-			return domain.ErrDataNameNotUniq
+			return domain2.ErrDataNameNotUniq
 		}
 
 		err = s.DataRepo.Update(ctx, *data)
 		if err != nil {
 			internal.Logger.Errorw("error while updating data", "id", data.ID, "err", err)
-			return domain.ErrDataUpdate
+			return domain2.ErrDataUpdate
 		}
 	}
 
@@ -90,25 +90,25 @@ func (s Service) UpsertData(ctx context.Context, data *domain.Data) error {
 // if isset fileId check it equal to database.data.fileId
 // if isset fileId check exist
 // check data version
-func (s Service) CheckUploadFileData(ctx context.Context, data domain.Data) error {
+func (s Service) CheckUploadFileData(ctx context.Context, data domain2.Data) error {
 	d, err := s.DataRepo.Get(ctx, data.ID)
 	if err != nil {
 		internal.Logger.Errorw("error while fetching data", "id", data.ID, "err", err)
-		return domain.ErrInternalServerError
+		return domain2.ErrInternalServerError
 	}
 
 	if d == nil || d.UID != data.UID {
-		return domain.ErrDataNotFound
+		return domain2.ErrDataNotFound
 	}
 
 	if data.FileID != nil && *data.FileID != 0 {
 		if d.FileID == nil || *d.FileID != *data.FileID {
-			return domain.ErrBadFileID
+			return domain2.ErrBadFileID
 		}
 
 		if _, err = s.FileRepo.Get(ctx, *data.FileID); err != nil {
 			internal.Logger.Errorw("error while fetching file", "id", *data.FileID, "err", err)
-			return domain.ErrInternalServerError
+			return domain2.ErrInternalServerError
 		}
 	}
 
@@ -117,8 +117,8 @@ func (s Service) CheckUploadFileData(ctx context.Context, data domain.Data) erro
 
 // if data.fileId - remove old file and update row
 // if new file - save file, and save data
-func (s Service) SaveDataFile(ctx context.Context, data *domain.Data, filePath string, f file.Service) error {
-	dFile := domain.File{
+func (s Service) SaveDataFile(ctx context.Context, data *domain2.Data, filePath string, f file.Service) error {
+	dFile := domain2.File{
 		Name: filepath.Base(filePath),
 		Path: filePath,
 		ID:   *data.FileID,
@@ -133,7 +133,7 @@ func (s Service) SaveDataFile(ctx context.Context, data *domain.Data, filePath s
 	oldRow, err := s.DataRepo.Get(ctx, data.ID)
 	if err != nil {
 		internal.Logger.Errorw("error while fetching data", "id", data.ID, "err", err)
-		return domain.ErrInternalServerError
+		return domain2.ErrInternalServerError
 	}
 
 	err = s.updateVersion(oldRow, data)
@@ -144,31 +144,31 @@ func (s Service) SaveDataFile(ctx context.Context, data *domain.Data, filePath s
 	err = s.DataRepo.SetFile(ctx, *data)
 	if err != nil {
 		internal.Logger.Errorw("error while updating data", "id", data.ID, "err", err)
-		return domain.ErrInternalServerError
+		return domain2.ErrInternalServerError
 	}
 
 	return nil
 }
 
-func (s Service) GetList(ctx context.Context, uid uint64) (list []domain.DataName, err error) {
+func (s Service) GetList(ctx context.Context, uid uint64) (list []domain2.DataName, err error) {
 	list, err = s.DataRepo.GetList(ctx, uid)
 	if err != nil {
 		internal.Logger.Errorw("error while fetching data", "uid", uid, "err", err)
-		return list, domain.ErrInternalServerError
+		return list, domain2.ErrInternalServerError
 	}
 
 	return
 }
 
-func (s Service) Get(ctx context.Context, dataID uint64, uid uint64) (data *domain.Data, err error) {
+func (s Service) Get(ctx context.Context, dataID uint64, uid uint64) (data *domain2.Data, err error) {
 	data, err = s.DataRepo.GetByUser(ctx, dataID, uid)
 	if err != nil {
 		internal.Logger.Errorw("error while fetching data", "id", dataID, "err", err)
-		return data, domain.ErrInternalServerError
+		return data, domain2.ErrInternalServerError
 	}
 
 	if data == nil {
-		return data, domain.ErrDataNotFound
+		return data, domain2.ErrDataNotFound
 	}
 
 	return
@@ -178,37 +178,37 @@ func (s Service) Delete(ctx context.Context, dataID, uid uint64, fs file.Service
 	data, err := s.DataRepo.GetByUser(ctx, dataID, uid)
 	if err != nil {
 		internal.Logger.Errorw("error while fetching data", "id", dataID, "err", err)
-		return domain.ErrInternalServerError
+		return domain2.ErrInternalServerError
 	}
 
 	if data == nil {
-		return domain.ErrDataNotFound
+		return domain2.ErrDataNotFound
 	}
 
 	err = s.DataRepo.Delete(ctx, dataID)
 	if err != nil {
 		internal.Logger.Errorw("error while deleting data", "id", dataID, "err", err)
-		return domain.ErrInternalServerError
+		return domain2.ErrInternalServerError
 	}
 
 	if data.FileID != nil && *data.FileID != 0 {
 		err = fs.Delete(ctx, *data.FileID)
 		if err != nil {
 			internal.Logger.Errorw("error while deleting file", "id", *data.FileID, "err", err)
-			return domain.ErrInternalServerError
+			return domain2.ErrInternalServerError
 		}
 	}
 
 	return nil
 }
 
-func (s Service) updateVersion(oldRow *domain.Data, newRow *domain.Data) error {
+func (s Service) updateVersion(oldRow *domain2.Data, newRow *domain2.Data) error {
 	if newRow.Version == 0 {
-		return domain.ErrDataVersionAbsent
+		return domain2.ErrDataVersionAbsent
 	}
 
 	if oldRow.Version != newRow.Version {
-		return domain.ErrDataOutdated
+		return domain2.ErrDataOutdated
 	}
 
 	newRow.Version = getVersion()
@@ -218,7 +218,7 @@ func (s Service) updateVersion(oldRow *domain.Data, newRow *domain.Data) error {
 
 // new: check by name and userId
 // update: get old row, if name changed find row with same name and userId
-func (s Service) checkName(ctx context.Context, data *domain.Data, oldData *domain.Data) (uniq bool, err error) {
+func (s Service) checkName(ctx context.Context, data *domain2.Data, oldData *domain2.Data) (uniq bool, err error) {
 	var id uint64
 
 	if data.ID != 0 && data.Name == oldData.Name {

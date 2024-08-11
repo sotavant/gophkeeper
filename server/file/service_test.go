@@ -2,10 +2,10 @@ package file
 
 import (
 	"context"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
+	"gophkeeper/server/domain"
 	"os"
 	"testing"
 

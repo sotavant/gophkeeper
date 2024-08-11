@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	clientDomain "gophkeeper/client/domain"
-	domain2 "gophkeeper/domain"
-	file2 "gophkeeper/file"
 	"gophkeeper/internal"
 	pb "gophkeeper/proto"
+	domain2 "gophkeeper/server/domain"
+	file2 "gophkeeper/server/file"
 	"io"
 	"os"
 

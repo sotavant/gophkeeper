@@ -2,10 +2,10 @@ package user
 
 import (
 	"context"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
+	domain2 "gophkeeper/server/domain"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -35,7 +35,7 @@ func TestService_Register(t *testing.T) {
 
 	service := NewService(repo)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -50,7 +50,7 @@ func TestService_Register(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		user       domain.User
+		user       domain2.User
 		wantErr    bool
 		wantResult wantResult
 	}{
@@ -59,12 +59,12 @@ func TestService_Register(t *testing.T) {
 			user:    *user,
 			wantErr: true,
 			wantResult: wantResult{
-				err: domain.ErrLoginExist,
+				err: domain2.ErrLoginExist,
 			},
 		},
 		{
 			name: "correct",
-			user: domain.User{
+			user: domain2.User{
 				Login:    "test1",
 				Password: "test1",
 			},
@@ -107,14 +107,14 @@ func TestService_Auth(t *testing.T) {
 
 	service := NewService(repo)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "testtest",
 	}
 
 	hashedPass, err := HashPassword(user.Password)
 	assert.NoError(t, err)
-	storedUser := domain.User{
+	storedUser := domain2.User{
 		Login:    user.Login,
 		Password: hashedPass,
 	}
@@ -129,7 +129,7 @@ func TestService_Auth(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		user       domain.User
+		user       domain2.User
 		wantErr    bool
 		wantResult wantResult
 	}{
@@ -140,24 +140,24 @@ func TestService_Auth(t *testing.T) {
 		},
 		{
 			name: "badLogin",
-			user: domain.User{
+			user: domain2.User{
 				Login:    "test1",
 				Password: "testtest",
 			},
 			wantErr: true,
 			wantResult: wantResult{
-				err: domain.ErrUserNotFound,
+				err: domain2.ErrUserNotFound,
 			},
 		},
 		{
 			name: "badPass",
-			user: domain.User{
+			user: domain2.User{
 				Login:    "test",
 				Password: "testtesttt",
 			},
 			wantErr: true,
 			wantResult: wantResult{
-				err: domain.ErrUserNotFound,
+				err: domain2.ErrUserNotFound,
 			},
 		},
 	}

@@ -6,8 +6,8 @@ import (
 	"gophkeeper/client/data"
 	"gophkeeper/client/domain"
 	"gophkeeper/client/user"
-	domain2 "gophkeeper/domain"
 	"gophkeeper/internal/client"
+	domain2 "gophkeeper/server/domain"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"

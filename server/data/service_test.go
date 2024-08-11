@@ -3,10 +3,10 @@ package data
 import (
 	"context"
 	"errors"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/repository/pgsql"
 	"gophkeeper/internal/test"
+	domain2 "gophkeeper/server/domain"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,7 +28,7 @@ func TestService_UpsertData(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
@@ -43,7 +43,7 @@ func TestService_UpsertData(t *testing.T) {
 	var versionSecond uint64 = 2
 	login := "test"
 	successTextData := "success update"
-	testData := &domain.Data{
+	testData := &domain2.Data{
 		Name:    "testic",
 		Login:   &login,
 		Pass:    &login,
@@ -51,7 +51,7 @@ func TestService_UpsertData(t *testing.T) {
 		UID:     userId,
 	}
 
-	testData2 := &domain.Data{
+	testData2 := &domain2.Data{
 		Name:    "testic2",
 		Login:   &login,
 		Pass:    &login,
@@ -71,13 +71,13 @@ func TestService_UpsertData(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		data          domain.Data
+		data          domain2.Data
 		want          want
 		updateVersion bool
 	}{
 		{
 			name: "success new data", // need check userId and version
-			data: domain.Data{
+			data: domain2.Data{
 				Login:   &login,
 				Pass:    &login,
 				CardNum: &login,
@@ -92,7 +92,7 @@ func TestService_UpsertData(t *testing.T) {
 		},
 		{
 			name: "name exist", // need check userId and version
-			data: domain.Data{
+			data: domain2.Data{
 				Login:   &login,
 				Pass:    &login,
 				CardNum: &login,
@@ -102,12 +102,12 @@ func TestService_UpsertData(t *testing.T) {
 				UID:     userId,
 			},
 			want: want{
-				err: domain.ErrDataNameNotUniq,
+				err: domain2.ErrDataNameNotUniq,
 			},
 		},
 		{
 			name: "success update",
-			data: domain.Data{
+			data: domain2.Data{
 				ID:      testData.ID,
 				Text:    &successTextData,
 				Version: testData.Version,
@@ -118,43 +118,43 @@ func TestService_UpsertData(t *testing.T) {
 		},
 		{
 			name: "wrong update name exist",
-			data: domain.Data{
+			data: domain2.Data{
 				ID:      testData.ID,
 				UID:     testData.UID,
 				Name:    testData2.Name,
 				Version: testData.Version,
 			},
 			want: want{
-				err: domain.ErrDataNameNotUniq,
+				err: domain2.ErrDataNameNotUniq,
 			},
 			updateVersion: true,
 		},
 		{
 			name: "wrong update version absent",
-			data: domain.Data{
+			data: domain2.Data{
 				ID:   testData.ID,
 				Name: testData.Name,
 			},
 			want: want{
-				err: domain.ErrDataVersionAbsent,
+				err: domain2.ErrDataVersionAbsent,
 			},
 		},
 		{
 			name: "wrong update bad version",
-			data: domain.Data{
+			data: domain2.Data{
 				ID:      testData.ID,
 				Name:    testData.Name,
 				Version: versionSecond,
 			},
 			want: want{
-				err: domain.ErrDataOutdated,
+				err: domain2.ErrDataOutdated,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.updateVersion {
-				var dd *domain.Data
+				var dd *domain2.Data
 				dd, err = service.DataRepo.Get(ctx, tt.data.ID)
 				assert.NoError(t, err)
 				tt.data.Version = dd.Version
@@ -196,11 +196,11 @@ func TestService_CheckUploadFileData(t *testing.T) {
 	userRepo, err := pgsql.NewUserRepository(ctx, pool, "c_users")
 	assert.NoError(t, err)
 
-	user := &domain.User{
+	user := &domain2.User{
 		Login:    "test",
 		Password: "test",
 	}
-	user1 := &domain.User{
+	user1 := &domain2.User{
 		Login:    "test1",
 		Password: "test",
 	}
@@ -215,7 +215,7 @@ func TestService_CheckUploadFileData(t *testing.T) {
 
 	fileRepo, err := pgsql.NewFileRepository(ctx, pool, "c_files")
 	assert.NoError(t, err)
-	file := domain.File{
+	file := domain2.File{
 		Name: "pup",
 		Path: "/dfff/sdd",
 	}
@@ -231,62 +231,62 @@ func TestService_CheckUploadFileData(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		insertData *domain.Data
-		newData    domain.Data
-		file       domain.File
+		insertData *domain2.Data
+		newData    domain2.Data
+		file       domain2.File
 		wantErr    error
 	}{
 		{
 			name: "wrong_data_id",
-			insertData: &domain.Data{
+			insertData: &domain2.Data{
 				Name:    "1",
 				Version: 1,
 				UID:     userId,
 				FileID:  nil,
 			},
-			newData: domain.Data{
+			newData: domain2.Data{
 				UID:    userId,
 				FileID: &fileId,
 			},
-			wantErr: domain.ErrDataNotFound,
+			wantErr: domain2.ErrDataNotFound,
 		},
 		{
 			name: "bad uid",
-			insertData: &domain.Data{
+			insertData: &domain2.Data{
 				Name:    "2",
 				Version: 1,
 				UID:     userId,
 				FileID:  nil,
 			},
-			newData: domain.Data{
+			newData: domain2.Data{
 				UID:    userId1,
 				FileID: &fileId,
 			},
-			wantErr: domain.ErrDataNotFound,
+			wantErr: domain2.ErrDataNotFound,
 		},
 		{
 			name: "empty db.fileId",
-			insertData: &domain.Data{
+			insertData: &domain2.Data{
 				Name:    "3",
 				Version: 1,
 				UID:     userId,
 				FileID:  nil,
 			},
-			newData: domain.Data{
+			newData: domain2.Data{
 				UID:    userId,
 				FileID: &fileId,
 			},
-			wantErr: domain.ErrBadFileID,
+			wantErr: domain2.ErrBadFileID,
 		},
 		{
 			name: "empty data.fileId",
-			insertData: &domain.Data{
+			insertData: &domain2.Data{
 				Name:    "4",
 				Version: 1,
 				UID:     userId,
 				FileID:  nil,
 			},
-			newData: domain.Data{
+			newData: domain2.Data{
 				UID:    userId,
 				FileID: nil,
 			},
@@ -294,27 +294,27 @@ func TestService_CheckUploadFileData(t *testing.T) {
 		},
 		{
 			name: "not equal data.fileId and db.dataId",
-			insertData: &domain.Data{
+			insertData: &domain2.Data{
 				Name:    "5",
 				Version: 1,
 				UID:     userId,
 				FileID:  &fileId,
 			},
-			newData: domain.Data{
+			newData: domain2.Data{
 				UID:    userId,
 				FileID: &fileId1,
 			},
-			wantErr: domain.ErrBadFileID,
+			wantErr: domain2.ErrBadFileID,
 		},
 		{
 			name: "bd.fileId not null, data.fileId not null",
-			insertData: &domain.Data{
+			insertData: &domain2.Data{
 				Name:    "6",
 				Version: 1,
 				UID:     userId,
 				FileID:  &file.ID,
 			},
-			newData: domain.Data{
+			newData: domain2.Data{
 				UID:    userId,
 				FileID: &file.ID,
 			},

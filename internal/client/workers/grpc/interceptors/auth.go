@@ -3,8 +3,8 @@ package interceptors
 import (
 	"context"
 	"errors"
-	"gophkeeper/domain"
 	"gophkeeper/proto"
+	"gophkeeper/server/domain"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"

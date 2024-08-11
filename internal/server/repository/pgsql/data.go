@@ -2,7 +2,7 @@ package pgsql
 
 import (
 	"context"
-	"gophkeeper/domain"
+	"gophkeeper/server/domain"
 	"strings"
 
 	"github.com/jackc/pgx/v5"

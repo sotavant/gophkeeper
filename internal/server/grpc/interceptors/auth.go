@@ -2,10 +2,10 @@ package interceptors
 
 import (
 	"context"
-	"gophkeeper/domain"
 	"gophkeeper/internal/server/auth"
 	"gophkeeper/proto"
-	"gophkeeper/user"
+	domain2 "gophkeeper/server/domain"
+	"gophkeeper/server/user"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -60,18 +60,18 @@ func Auth(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, hand
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
-		vals := md[domain.AuthorizationMetaKey]
+		vals := md[domain2.AuthorizationMetaKey]
 		if len(vals) > 0 {
 			val := vals[0]
-			if !strings.Contains(val, domain.TokenSubstr) {
+			if !strings.Contains(val, domain2.TokenSubstr) {
 				return nil, status.Errorf(codes.Unauthenticated, wrongAuthenticatedMeta)
 			}
 
 			var userID uint64
-			token := strings.TrimSpace(strings.Replace(val, domain.TokenSubstr, "", -1))
+			token := strings.TrimSpace(strings.Replace(val, domain2.TokenSubstr, "", -1))
 			userID, err = auth.GetUserID(token)
 			if err != nil {
-				return nil, status.Errorf(codes.Internal, domain.ErrInternalServerError.Error())
+				return nil, status.Errorf(codes.Internal, domain2.ErrInternalServerError.Error())
 			}
 
 			if userID == 0 {
@@ -91,18 +91,18 @@ func Auth(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, hand
 func StreamAuth(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	md, ok := metadata.FromIncomingContext(ss.Context())
 	if ok {
-		vals := md[domain.AuthorizationMetaKey]
+		vals := md[domain2.AuthorizationMetaKey]
 		if len(vals) > 0 {
 			val := vals[0]
-			if !strings.Contains(val, domain.TokenSubstr) {
+			if !strings.Contains(val, domain2.TokenSubstr) {
 				return status.Errorf(codes.Unauthenticated, wrongAuthenticatedMeta)
 			}
 
 			var userID uint64
-			token := strings.TrimSpace(strings.Replace(val, domain.TokenSubstr, "", -1))
+			token := strings.TrimSpace(strings.Replace(val, domain2.TokenSubstr, "", -1))
 			userID, err := auth.GetUserID(token)
 			if err != nil {
-				return status.Errorf(codes.Internal, domain.ErrInternalServerError.Error())
+				return status.Errorf(codes.Internal, domain2.ErrInternalServerError.Error())
 			}
 
 			if userID == 0 {
