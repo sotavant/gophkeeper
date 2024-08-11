@@ -11,7 +11,7 @@ func InitLogger() {
 		Level:         zap.NewAtomicLevelAt(zap.InfoLevel),
 		Encoding:      "json",
 		EncoderConfig: zap.NewDevelopmentEncoderConfig(),
-		OutputPaths:   []string{"debug.log"},
+		OutputPaths:   []string{"/Users/fanishadeev/GolandProjects/gophkeeper/debug.log"},
 	}
 
 	//logger, err := zap.NewDevelopment()

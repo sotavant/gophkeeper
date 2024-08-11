@@ -4,6 +4,7 @@ import (
 	"context"
 	"gophkeeper/domain"
 	"gophkeeper/internal/server/auth"
+	"gophkeeper/proto"
 	"gophkeeper/user"
 	"strings"
 
@@ -53,6 +54,10 @@ func newStreamContextWrapper(ss grpc.ServerStream) StreamContextWrapper {
 }
 
 func Auth(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	if info.FullMethod == proto.UserService_Register_FullMethodName || info.FullMethod == proto.UserService_Login_FullMethodName {
+		return handler(ctx, req)
+	}
+
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
 		vals := md[domain.AuthorizationMetaKey]

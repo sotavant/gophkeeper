@@ -14,10 +14,10 @@ import (
 
 func TestMain(m *testing.M) {
 	m.Run()
-
 }
 
 func TestService_Register(t *testing.T) {
+	testUserTable := "reg_test_users"
 	ctx := context.Background()
 	internal.InitLogger()
 
@@ -26,11 +26,11 @@ func TestService_Register(t *testing.T) {
 	assert.NotNil(t, pool, "no databases init")
 
 	defer func(ctx context.Context, pool *pgxpool.Pool) {
-		err = test.CleanData(ctx, pool, []string{test.UsersTestTable})
+		err = test.CleanData(ctx, pool, []string{testUserTable})
 		assert.NoError(t, err)
 	}(ctx, pool)
 
-	repo, err := pgsql.NewUserRepository(ctx, pool, test.UsersTestTable)
+	repo, err := pgsql.NewUserRepository(ctx, pool, testUserTable)
 	assert.NoError(t, err)
 
 	service := NewService(repo)

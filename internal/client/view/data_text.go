@@ -4,6 +4,7 @@ package view
 
 import (
 	"fmt"
+	"gophkeeper/client/data"
 	"gophkeeper/client/domain"
 	"gophkeeper/internal"
 	"strings"
@@ -16,6 +17,7 @@ type dataTextModel struct {
 	textarea textarea.Model
 	err      error
 	data     domain.Data
+	msg      string
 }
 
 func InitDataTextModel(d domain.Data) dataTextModel {
@@ -55,7 +57,10 @@ func (m dataTextModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case tea.KeyCtrlC:
 			return m, tea.Quit
-
+		// to data list
+		case tea.KeyCtrlL:
+			dt := InitDataListModel()
+			return dt, dt.Init()
 		// to meta view
 		case tea.KeyCtrlA:
 			dt := initMetaModel(m.getData())
@@ -63,6 +68,9 @@ func (m dataTextModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlD:
 			dt := InitDataFieldsModel(m.getData())
 			return dt, dt.Init()
+		// save data
+		case tea.KeyCtrlS:
+			m.saveData()
 		default:
 			if !m.textarea.Focused() {
 				cmd = m.textarea.Focus()
@@ -77,7 +85,6 @@ func (m dataTextModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if needUpdate {
-		internal.Logger.Info(msg)
 		m.textarea, cmd = m.textarea.Update(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -87,6 +94,14 @@ func (m dataTextModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m dataTextModel) View() string {
 	var b strings.Builder
+
+	if m.err != nil {
+		b.WriteString(errorStyle.Render(m.err.Error()) + "\n\n")
+	}
+
+	if len(m.msg) > 0 {
+		b.WriteString(infoStyle.Render(m.msg) + "\n\n")
+	}
 
 	_, err := fmt.Fprintf(
 		&b,
@@ -100,6 +115,10 @@ func (m dataTextModel) View() string {
 	b.WriteRune('\n')
 	b.WriteString(actionsStyle.Render("'ctrl+d' to edit data window"))
 	b.WriteRune('\n')
+	b.WriteString(actionsStyle.Render("'ctrl+s' save data"))
+	b.WriteRune('\n')
+	b.WriteString(actionsStyle.Render("'ctrl+l' to data list"))
+	b.WriteRune('\n')
 	b.WriteString(helpStyle.Render("'ctrl+w' to main window\n'ctrl-c' to quit"))
 
 	if err != nil {
@@ -107,6 +126,17 @@ func (m dataTextModel) View() string {
 	}
 
 	return b.String()
+}
+
+func (m *dataTextModel) saveData() {
+	id, version, err := data.SaveData(m.getData())
+	if err != nil {
+		m.err = err
+	} else {
+		m.data.ID = id
+		m.data.Version = version
+		m.msg = "data saved"
+	}
 }
 
 func (m dataTextModel) getData() domain.Data {

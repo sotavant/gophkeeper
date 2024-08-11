@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	clientDomain "gophkeeper/client/domain"
 	"gophkeeper/data"
 	"gophkeeper/domain"
 	"gophkeeper/file"
@@ -24,7 +25,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func TestDataClient_SaveDate(t *testing.T) {
+func TestDataClient_SaveData(t *testing.T) {
 	internal.InitLogger()
 	ctx := context.Background()
 	existingUserLogin := "kaka"
@@ -34,7 +35,7 @@ func TestDataClient_SaveDate(t *testing.T) {
 	assert.NotNil(t, pool, "no databases init")
 
 	defer func(ctx context.Context, pool *pgxpool.Pool) {
-		//err = test.CleanData(ctx, pool, []string{test.DataTestTable, test.FileTestTable, test.UsersTestTable})
+		err = test.CleanData(ctx, pool, []string{test.DataTestTable, test.FileTestTable, test.UsersTestTable})
 		assert.NoError(t, err)
 	}(ctx, pool)
 
@@ -95,13 +96,13 @@ func TestDataClient_SaveDate(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		data          *domain.Data
+		data          *clientDomain.Data
 		wantErr       bool
 		wantErrorCode codes.Code
 	}{
 		{
 			name: "success",
-			data: &domain.Data{
+			data: &clientDomain.Data{
 				Name:    "success",
 				Version: 1,
 			},
@@ -110,7 +111,7 @@ func TestDataClient_SaveDate(t *testing.T) {
 		},
 		{
 			name: "name exist",
-			data: &domain.Data{
+			data: &clientDomain.Data{
 				Name:    testData.Name,
 				Version: 1,
 			},

@@ -40,6 +40,7 @@ func Auth(login, pass string, isLogin bool) error {
 func ResetUser() {
 	client.AppInstance.User.Login = ""
 	client.AppInstance.User.Token = ""
+	client.AppInstance.User.StorageKey = nil
 }
 
 func validateRegisterCredential(login, pass string) error {

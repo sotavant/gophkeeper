@@ -69,7 +69,7 @@ func (m UserModel) Do() (tea.Model, tea.Cmd) {
 
 	switch m.cursor {
 	case DataListChoice:
-		return initDataListModel(), cmd
+		return InitDataListModel(), cmd
 	case AddDataChoice:
 		var data domain.Data
 		return InitDataFieldsModel(data), cmd
@@ -102,6 +102,8 @@ func (m UserModel) View() string {
 		s.WriteString(userModelChoices[i])
 		s.WriteString("\n")
 	}
+
+	s.WriteString(helpStyle.Render("\n\n'ctrl+w' to main window"))
 	s.WriteString("\n(press q to quit)\n")
 
 	return s.String()

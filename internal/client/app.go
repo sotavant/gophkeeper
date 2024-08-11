@@ -4,8 +4,10 @@ import (
 	"crypto/sha1"
 	"errors"
 	"flag"
+	"gophkeeper/client/domain"
 	"gophkeeper/internal"
 	g "gophkeeper/internal/client/workers/grpc"
+	"gophkeeper/internal/client/workers/grpc/interceptors"
 	"gophkeeper/internal/crypto"
 	pb "gophkeeper/proto"
 	"os"
@@ -22,9 +24,10 @@ type AppUser struct {
 }
 
 type App struct {
-	UserClient *g.UserClient
-	DataClient *g.DataClient
-	User       AppUser
+	UserClient    *g.UserClient
+	DataClient    *g.DataClient
+	User          AppUser
+	DecryptedData map[uint64]domain.Data
 }
 
 var AppInstance *App
@@ -38,7 +41,10 @@ func InitApp() error {
 		return err
 	}
 
-	AppInstance = &App{}
+	AppInstance = &App{
+		DecryptedData: make(map[uint64]domain.Data),
+	}
+
 	err = initGRPCUserClient(c)
 	if err != nil {
 		return err
@@ -57,7 +63,12 @@ func initGRPCUserClient(cnf *config) error {
 		internal.Logger.Fatalw("failed to init crypto cipher", "error", err)
 	}
 
-	conn, err := grpc.NewClient(cnf.address, grpc.WithTransportCredentials(ch.GetClientGRPCTransportCreds()))
+	conn, err := grpc.NewClient(
+		cnf.address, grpc.WithTransportCredentials(ch.GetClientGRPCTransportCreds()),
+		grpc.WithUnaryInterceptor(interceptors.Auth),
+		grpc.WithStreamInterceptor(interceptors.StreamAuth),
+	)
+
 	if err != nil {
 		internal.Logger.Fatalw("failed to create grpc client", "error", err)
 	}

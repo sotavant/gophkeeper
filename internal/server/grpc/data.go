@@ -44,7 +44,8 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 	}
 
 	return &pb.SaveDataResponse{
-		DataId: ur.ID,
+		DataId:      ur.ID,
+		DataVersion: ur.Version,
 	}, nil
 }
 

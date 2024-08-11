@@ -11,4 +11,7 @@ var (
 	ErrEncryptData            = errors.New("error in encrypt data")
 	ErrReadingFile            = errors.New("error in reading file")
 	ErrUploadFile             = errors.New("error in upload file")
+	ErrGetDataList            = errors.New("error in get data list")
+	ErrGetData                = errors.New("error in get data")
+	ErrDataNotFound           = errors.New("data not found")
 )

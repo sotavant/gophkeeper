@@ -2,8 +2,8 @@ package view
 
 import (
 	"fmt"
+	"gophkeeper/client/data"
 	"gophkeeper/client/domain"
-	"gophkeeper/internal"
 	"strconv"
 	"strings"
 
@@ -86,6 +86,7 @@ func InitDataFieldsModel(data domain.Data) DataFieldsModel {
 			t.SetValue(data.CardNum)
 		case fileFieldKey:
 			t.CharLimit = 200
+			t.Placeholder = data.FileName
 			t.SetValue(data.FilePath)
 		case loginFieldKey:
 			t.SetValue(data.Login)
@@ -126,13 +127,13 @@ func (m DataFieldsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+a":
 			dt := initMetaModel(m.getData())
 			return dt, dt.Init()
+		// to data list
+		case "ctrl+l":
+			dt := InitDataListModel()
+			return dt, dt.Init()
 		// Set focus to next input
 		case "tab", "shift+tab", "enter", "up", "down":
 			s := msgType.String()
-
-			if s == "enter" {
-				internal.Logger.Info("focusIndex", m.focusIndex, "inputsLen", m.getInputsCount())
-			}
 			// Did the user press enter while the submit button was focused?
 			// If so, exit.
 			if s == "enter" && m.focusIndex == m.getInputsCount() {
@@ -217,7 +218,11 @@ func (m DataFieldsModel) View() string {
 	b.WriteRune('\n')
 	b.WriteString(actionsStyle.Render("'ctrl+s' save data"))
 	b.WriteRune('\n')
+	b.WriteString(actionsStyle.Render("'ctrl+l' to data list"))
+	b.WriteRune('\n')
 	b.WriteString(helpStyle.Render("'ctrl+w' to main window\n'ctrl-c' to quit"))
+
+	m.errMsg = ""
 
 	return b.String()
 }
@@ -262,11 +267,12 @@ func (m DataFieldsModel) getData() domain.Data {
 }
 
 func (m *DataFieldsModel) saveData() {
-	id, err := saveData(m.getData())
+	id, version, err := data.SaveData(m.getData())
 	if err != nil {
 		m.errMsg = err.Error()
 	} else {
 		m.data.ID = id
+		m.data.Version = version
 		m.msg = "data saved"
 	}
 }

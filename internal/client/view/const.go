@@ -6,11 +6,12 @@ const (
 )
 
 const (
-	nameFieldName    = "Name (required)"
-	loginFieldName   = "Login"
-	passFieldName    = "Password"
-	cardNumFieldName = "Card Number"
-	fileFieldName    = "File path"
-	textFieldName    = "Text"
-	metaFieldName    = "Meta"
+	nameFieldName     = "Name (required)"
+	loginFieldName    = "Login"
+	passFieldName     = "Password"
+	cardNumFieldName  = "Card Number"
+	fileFieldName     = "File path"
+	fileNameFieldName = "File name"
+	textFieldName     = "Text"
+	metaFieldName     = "Meta"
 )

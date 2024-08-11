@@ -37,7 +37,7 @@ func TestEncrypt(t *testing.T) {
 			decrypted, err := Decrypt(key, got)
 			assert.NoError(t, err)
 
-			assert.Equal(t, testText, string(decrypted))
+			assert.Equal(t, testText, decrypted)
 		})
 	}
 }
