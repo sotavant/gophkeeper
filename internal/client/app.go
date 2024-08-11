@@ -36,11 +36,19 @@ type App struct {
 
 var AppInstance *App
 
-func InitApp() error {
+func InitApp(buildCryptoKeysPath, buildSaveFilePath string) error {
+	internal.Logger.Info()
 	var err error
 
 	internal.InitLogger()
 	c := initConfig()
+	if buildCryptoKeysPath != "" {
+		c.cryptoKeysPath = buildCryptoKeysPath
+	}
+	if buildSaveFilePath != "" {
+		c.fileSavePath = buildSaveFilePath
+	}
+
 	if err = checkConfig(c); err != nil {
 		return err
 	}

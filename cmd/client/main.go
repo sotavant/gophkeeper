@@ -13,15 +13,17 @@ import (
 // Build info.
 // Need define throw ldflags:
 //
-//	go build -ldflags "-X 'main.buildDate=$(date +'%Y/%m/%d')' -X 'main.buildVersion=$(git rev-parse --short HEAD)'"
+//	go build -ldflags "-X 'main.buildDate=$(date +'%Y/%m/%d')' -X 'main.buildVersion=$(git rev-parse --short HEAD)' -X 'main.buildCryptoKeysPath=path' -X 'main.buildSaveFilePath=path'"
 var (
-	buildVersion string
-	buildDate    string
+	buildVersion,
+	buildDate,
+	buildCryptoKeysPath,
+	buildSaveFilePath string
 )
 
 func main() {
 	internal.InitLogger()
-	err := client.InitApp()
+	err := client.InitApp(buildCryptoKeysPath, buildSaveFilePath)
 	if err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
