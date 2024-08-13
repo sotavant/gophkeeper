@@ -2,7 +2,7 @@ package pgsql
 
 import (
 	"context"
-	"gophkeeper/domain"
+	"gophkeeper/server/domain"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -12,6 +12,7 @@ import (
 
 const UsersTableName = "users"
 
+// UserRepository структура для взаимодействия с таблицей пользвателей
 type UserRepository struct {
 	DBPoll    *pgxpool.Pool
 	tableName string
@@ -29,12 +30,14 @@ func NewUserRepository(ctx context.Context, pool *pgxpool.Pool, tableName string
 	}, nil
 }
 
+// GetByLogin Получить пользователя по ИД
 func (u *UserRepository) GetByLogin(ctx context.Context, login string) (domain.User, error) {
 	query := u.setUserTableName(`select id, login, password from #T# where login = $1`)
 
 	return u.getOne(ctx, query, login)
 }
 
+// Store добавить нового пользователя
 func (u *UserRepository) Store(ctx context.Context, user domain.User) (uint64, error) {
 	var id uint64
 	query := u.setUserTableName(`insert into #T# (login, password) values ($1, $2) returning id`)

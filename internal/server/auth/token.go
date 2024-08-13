@@ -1,3 +1,4 @@
+// Package auth для аутентификации пользователя
 package auth
 
 import (
@@ -17,6 +18,7 @@ type claims struct {
 const tokenExp = time.Hour * 3
 const secretKey = "someSecretSuperKey"
 
+// BuildJWTString получить токен пользвателя, содержащий его ИД
 func BuildJWTString(userID uint64) (string, error) {
 	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
@@ -38,6 +40,7 @@ func BuildJWTString(userID uint64) (string, error) {
 	return tokenString, nil
 }
 
+// GetUserID получение ИД пользвателя из токена
 func GetUserID(tokenString string) (uint64, error) {
 	claims := &claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,

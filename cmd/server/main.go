@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
-	"gophkeeper/data"
-	"gophkeeper/file"
 	"gophkeeper/internal"
 	"gophkeeper/internal/crypto"
 	"gophkeeper/internal/server"
 	grpc2 "gophkeeper/internal/server/grpc"
+	interceptors2 "gophkeeper/internal/server/grpc/interceptors"
 	"gophkeeper/internal/server/repository/pgsql"
 	pb "gophkeeper/proto"
-	"gophkeeper/user"
+	"gophkeeper/server/data"
+	"gophkeeper/server/file"
+	"gophkeeper/server/user"
 	"net"
 	"os"
 	"os/signal"
@@ -61,12 +62,14 @@ func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 	var ch *crypto.Cipher
 	var interceptors []grpc.UnaryServerInterceptor
 
-	ch, err = crypto.NewCipher()
+	ch, err = crypto.NewCipher(app.CryptoKeysPath)
 	if err != nil {
 		internal.Logger.Fatalw("error initializing cipher", "err", err)
 	}
 
-	s := grpc.NewServer(grpc.Creds(ch.GetServerGRPCTransportCreds()), grpc.ChainUnaryInterceptor(interceptors...))
+	interceptors = append(interceptors, interceptors2.Auth)
+
+	s := grpc.NewServer(grpc.Creds(ch.GetServerGRPCTransportCreds()), grpc.ChainUnaryInterceptor(interceptors...), grpc.StreamInterceptor(interceptors2.StreamAuth))
 
 	userRepo, err := pgsql.NewUserRepository(ctx, app.DBPool, pgsql.UsersTableName)
 	if err != nil {
@@ -78,7 +81,7 @@ func initGRPCServer(ctx context.Context, app *server.App) *grpc.Server {
 		panic(err)
 	}
 
-	dataRepo, err := pgsql.NewDataRepository(ctx, app.DBPool, pgsql.DataTableName, pgsql.UsersTableName, pgsql.FileTableName)
+	dataRepo, err := pgsql.NewDataRepository(ctx, app.DBPool, pgsql.DataTableName, pgsql.FileTableName, pgsql.UsersTableName)
 	if err != nil {
 		panic(err)
 	}

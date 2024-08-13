@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"errors"
-	"gophkeeper/domain"
+	"gophkeeper/server/domain"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

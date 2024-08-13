@@ -2,10 +2,10 @@ package interceptors
 
 import (
 	"context"
-	"gophkeeper/domain"
 	"gophkeeper/internal"
 	"gophkeeper/internal/server/auth"
 	pb "gophkeeper/proto"
+	"gophkeeper/server/domain"
 	"net"
 	"testing"
 

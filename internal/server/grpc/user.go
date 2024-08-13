@@ -2,17 +2,18 @@ package grpc
 
 import (
 	"context"
+	"gophkeeper/server/domain"
+	"gophkeeper/server/user"
 
 	"github.com/bufbuild/protovalidate-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"gophkeeper/domain"
 	"gophkeeper/internal"
-	"gophkeeper/user"
 )
 import pb "gophkeeper/proto"
 
+// UserServer структура обеспечивающая регистрация/авторизацию пользвателя
 type UserServer struct {
 	pb.UnimplementedUserServiceServer
 	Service *user.Service
@@ -24,6 +25,7 @@ func NewUserServer(s *user.Service) *UserServer {
 	}
 }
 
+// Register регистрация пользвателя
 func (u *UserServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	ur := &userRequest{}
 	if err := ur.Bind(req); err != nil {
@@ -41,6 +43,7 @@ func (u *UserServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb
 	}, nil
 }
 
+// Login авторизация пользвателя
 func (u *UserServer) Login(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	ur := &userRequest{}
 	if err := ur.Bind(req); err != nil {
@@ -62,6 +65,7 @@ type userRequest struct {
 	domain.User
 }
 
+// Bind отображения в данных пользователя из запроса в модель сервера
 func (u *userRequest) Bind(req *pb.RegisterRequest) error {
 	v, err := protovalidate.New()
 	if err != nil {

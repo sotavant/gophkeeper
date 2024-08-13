@@ -1,11 +1,21 @@
 package internal
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+)
 
 var Logger zap.SugaredLogger
 
 func InitLogger() {
-	logger, err := zap.NewDevelopment()
+	config := zap.Config{
+		Level:         zap.NewAtomicLevelAt(zap.InfoLevel),
+		Encoding:      "json",
+		EncoderConfig: zap.NewDevelopmentEncoderConfig(),
+		OutputPaths:   []string{"/Users/fanishadeev/GolandProjects/gophkeeper/debug.log"},
+	}
+
+	//logger, err := zap.NewDevelopment()
+	logger, err := config.Build()
 	if err != nil {
 		panic(err)
 	}

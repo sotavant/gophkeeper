@@ -1,13 +1,14 @@
+// Package grpc пакет для взаимодействия с сервером по протоколу grpc
 package grpc
 
 import (
 	"context"
-	"gophkeeper/data"
-	"gophkeeper/domain"
-	file2 "gophkeeper/file"
 	"gophkeeper/internal"
 	pb "gophkeeper/proto"
-	"gophkeeper/user"
+	"gophkeeper/server/data"
+	domain2 "gophkeeper/server/domain"
+	file3 "gophkeeper/server/file"
+	"gophkeeper/server/user"
 	"io"
 	"os"
 
@@ -20,11 +21,11 @@ import (
 type DataServer struct {
 	pb.UnimplementedDataServiceServer
 	Service       data.Service
-	FileService   file2.Service
+	FileService   file3.Service
 	filesSavePath string
 }
 
-func NewDataServer(s *data.Service, filesSavePath string, f *file2.Service) *DataServer {
+func NewDataServer(s *data.Service, filesSavePath string, f *file3.Service) *DataServer {
 	return &DataServer{
 		Service:       *s,
 		filesSavePath: filesSavePath,
@@ -32,8 +33,9 @@ func NewDataServer(s *data.Service, filesSavePath string, f *file2.Service) *Dat
 	}
 }
 
+// SaveData сохранение данных в базу
 func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb.SaveDataResponse, error) {
-	ur := &dataRequest{&domain.Data{}}
+	ur := &dataRequest{&domain2.Data{}}
 	if err := ur.Bind(ctx, req); err != nil {
 		return nil, getError(err)
 	}
@@ -44,17 +46,19 @@ func (s *DataServer) SaveData(ctx context.Context, req *pb.SaveDataRequest) (*pb
 	}
 
 	return &pb.SaveDataResponse{
-		DataId: ur.ID,
+		DataId:      ur.ID,
+		DataVersion: ur.Version,
 	}, nil
 }
 
+// GetData получение данных из базы
 func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDataResponse, error) {
 	var err error
-	var dbFile *domain.File
+	var dbFile *domain2.File
 
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
-		return nil, domain.ErrUserIDAbsent
+		return nil, domain2.ErrUserIDAbsent
 	}
 
 	v, err := protovalidate.New()
@@ -64,7 +68,7 @@ func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.G
 
 	if err = v.Validate(req); err != nil {
 		internal.Logger.Errorw("upload request validation error", "err", err)
-		return nil, domain.ErrBadData
+		return nil, domain2.ErrBadData
 	}
 
 	d, err := s.Service.Get(ctx, req.GetId(), ctxUID)
@@ -82,12 +86,13 @@ func (s *DataServer) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.G
 	return getDataResponse(*d, dbFile), nil
 }
 
+// DeleteData удаление данных
 func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) (*emptypb.Empty, error) {
 	var err error
 
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
-		return nil, domain.ErrUserIDAbsent
+		return nil, domain2.ErrUserIDAbsent
 	}
 
 	v, err := protovalidate.New()
@@ -97,7 +102,7 @@ func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) 
 
 	if err = v.Validate(req); err != nil {
 		internal.Logger.Errorw("upload request validation error", "err", err)
-		return nil, domain.ErrBadData
+		return nil, domain2.ErrBadData
 	}
 
 	err = s.Service.Delete(ctx, req.GetId(), ctxUID, s.FileService)
@@ -105,10 +110,11 @@ func (s *DataServer) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) 
 	return nil, nil
 }
 
+// GetDataList получение списка данных
 func (s *DataServer) GetDataList(ctx context.Context, empty *emptypb.Empty) (*pb.DataListResponse, error) {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
-		return nil, domain.ErrUserIDAbsent
+		return nil, domain2.ErrUserIDAbsent
 	}
 
 	list, err := s.Service.GetList(ctx, ctxUID)
@@ -123,17 +129,13 @@ func (s *DataServer) GetDataList(ctx context.Context, empty *emptypb.Empty) (*pb
 	return getDataListResponse(list), nil
 }
 
-// test: file with same name
-// validate data
-// check row with id exist
-// check version
-// uploader -> fileService for save file -> dataService for add file
+// UploadFile загрузка файла
 func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 	validated := false
-	ur := &dataRequest{&domain.Data{}}
+	ur := &dataRequest{&domain2.Data{}}
 
 	var fileSize uint32 = 0
-	file := file2.NewUploader(s.filesSavePath)
+	file := file3.NewUploader(s.filesSavePath)
 
 	defer func() {
 		if err := file.Close(); err != nil {
@@ -165,7 +167,7 @@ func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 
 		if file.FilePath == "" {
 			var dir string
-			dir = file2.GetSaveFileSubDir(*ur.Data)
+			dir = file3.GetSaveFileSubDir(*ur.Data)
 			if err = file.SetFile(req.GetFileName(), dir); err != nil {
 				return getError(err)
 			}
@@ -194,6 +196,7 @@ func (s *DataServer) UploadFile(stream pb.DataService_UploadFileServer) error {
 	})
 }
 
+// DownloadFile потоковая отдача файла по запросу
 func (s *DataServer) DownloadFile(req *pb.DownloadFileRequest, stream pb.DataService_DownloadFileServer) error {
 	dr := &DownloadFileRequest{}
 	if err := dr.BindDownloadFileRequest(stream.Context(), req); err != nil {
@@ -206,7 +209,7 @@ func (s *DataServer) DownloadFile(req *pb.DownloadFileRequest, stream pb.DataSer
 	}
 
 	if dbData.FileID == nil || *dbData.FileID != dr.FileID {
-		return getError(domain.ErrFileNotFound)
+		return getError(domain2.ErrFileNotFound)
 	}
 
 	file, err := s.FileService.Get(stream.Context(), dr.FileID)
@@ -215,7 +218,7 @@ func (s *DataServer) DownloadFile(req *pb.DownloadFileRequest, stream pb.DataSer
 	}
 
 	if file == nil {
-		return getError(domain.ErrFileNotFound)
+		return getError(domain2.ErrFileNotFound)
 	}
 
 	bufferSize := 1024 * 1024
@@ -260,13 +263,14 @@ func (s *DataServer) DownloadFile(req *pb.DownloadFileRequest, stream pb.DataSer
 }
 
 type dataRequest struct {
-	*domain.Data
+	*domain2.Data
 }
 
+// BindUploadFile отображение данных запроса в модель сервера
 func (d *dataRequest) BindUploadFile(ctx context.Context, req *pb.UploadFileRequest) error {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
-		return domain.ErrUserIDAbsent
+		return domain2.ErrUserIDAbsent
 	}
 
 	v, err := protovalidate.New()
@@ -276,7 +280,7 @@ func (d *dataRequest) BindUploadFile(ctx context.Context, req *pb.UploadFileRequ
 
 	if err = v.Validate(req); err != nil {
 		internal.Logger.Errorw("upload request validation error", "err", err)
-		return domain.ErrBadData
+		return domain2.ErrBadData
 	}
 
 	fileId := req.GetFileId()
@@ -288,10 +292,11 @@ func (d *dataRequest) BindUploadFile(ctx context.Context, req *pb.UploadFileRequ
 	return nil
 }
 
+// Bind отображение данных запроса в модель сервера
 func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
-		return domain.ErrUserIDAbsent
+		return domain2.ErrUserIDAbsent
 	}
 
 	v, err := protovalidate.New()
@@ -301,7 +306,7 @@ func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 
 	if err = v.Validate(req.Data); err != nil {
 		internal.Logger.Errorw("user validation error", "err", err)
-		return domain.ErrBadData
+		return domain2.ErrBadData
 	}
 
 	reqData := req.GetData()
@@ -324,8 +329,9 @@ func (d *dataRequest) Bind(ctx context.Context, req *pb.SaveDataRequest) error {
 	return nil
 }
 
-func getDataResponse(data domain.Data, file *domain.File) *pb.GetDataResponse {
+func getDataResponse(data domain2.Data, file *domain2.File) *pb.GetDataResponse {
 	fileName := ""
+
 	if file != nil {
 		fileName = file.Name
 	}
@@ -357,10 +363,14 @@ func getDataResponse(data domain.Data, file *domain.File) *pb.GetDataResponse {
 		respData.Meta = *data.Meta
 	}
 
+	if data.FileID != nil {
+		respData.FileID = *data.FileID
+	}
+
 	return &pb.GetDataResponse{Data: respData}
 }
 
-func getDataListResponse(data []domain.DataName) *pb.DataListResponse {
+func getDataListResponse(data []domain2.DataName) *pb.DataListResponse {
 	dataList := make([]*pb.DataList, len(data))
 
 	for i, d := range data {
@@ -381,10 +391,11 @@ type DownloadFileRequest struct {
 	FileID uint64
 }
 
+// BindDownloadFileRequest отображение данных запроса на скачивание файла в модель сервера
 func (d *DownloadFileRequest) BindDownloadFileRequest(ctx context.Context, req *pb.DownloadFileRequest) error {
 	ctxUID := ctx.Value(user.ContextUserIDKey{}).(uint64)
 	if ctxUID == 0 {
-		return domain.ErrUserIDAbsent
+		return domain2.ErrUserIDAbsent
 	}
 
 	v, err := protovalidate.New()
@@ -394,7 +405,7 @@ func (d *DownloadFileRequest) BindDownloadFileRequest(ctx context.Context, req *
 
 	if err = v.Validate(req); err != nil {
 		internal.Logger.Errorw("user validation error", "err", err)
-		return domain.ErrBadData
+		return domain2.ErrBadData
 	}
 
 	d.DataID = req.GetDataID()
